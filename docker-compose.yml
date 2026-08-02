@@ -11,6 +11,7 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
+      - venv_volume:/app/.venv
       - media_volume:/app/media
     ports:
       - "8000:8000"
@@ -20,9 +21,10 @@ services:
 
   worker:
     build: .
-    command: celery -A deepfakelab worker --loglevel=info
+    command: celery -A core worker --loglevel=info
     volumes:
       - .:/app
+      - venv_volume:/app/.venv
       - media_volume:/app/media
     depends_on:
       - redis
@@ -30,3 +32,4 @@ services:
 
 volumes:
   media_volume:
+  venv_volume:
