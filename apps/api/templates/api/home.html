@@ -1,0 +1,83 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EchoFake — Demo de concientización</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+  {% include "api/_header.html" %}
+
+  <main class="wrap wrap--wide">
+    <section class="hero">
+      <div class="hero__copy">
+        <p class="badge">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 3l7 4v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V7z"/>
+          </svg>
+          Demo de concientización
+        </p>
+
+        <h1>Una foto y 30 segundos de audio<br>
+          <span class="hl-green">alcanzan</span> para <span class="hl-cyan">suplantarte</span>
+        </h1>
+
+        <p class="lede">
+          EchoFake clona una voz y genera un video de esa persona diciendo algo que nunca
+          dijo, con herramientas públicas que cuestan centavos. Los datos que cargues acá
+          se borran o se revocan al terminar la demo, con expiración garantizada dentro de la hora.
+        </p>
+
+        <div class="cta-row">
+          <a class="btn btn--primary" href="{% url 'create' %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Generar un caso
+          </a>
+          <a class="btn btn--ghost" href="{% url 'subject-list' %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h10"/>
+            </svg>
+            Ver casos generados
+          </a>
+        </div>
+      </div>
+
+      <div class="hero__visual" aria-hidden="true">
+        <div class="term term--preview">
+          <div class="term__bar">
+            <div class="term__dots"><i></i><i></i><i></i></div>
+            <span class="term__title">echofake@utn — pipeline</span>
+          </div>
+          <div class="term__body">
+            <div class="log log--cmd">$ echofake generate --type=video</div>
+            <div class="log">&gt; voz clonada con elevenlabs</div>
+            <div class="log">&gt; generando video · fal.ai / fabric-1.0</div>
+            <div class="log log--ok">&gt; listo en 38s<span class="caret"></span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="how-grid">
+      <div class="how-card">
+        <p class="how-card__num">01</p>
+        <h3>Registrás</h3>
+        <p>Un voluntario firma el consentimiento y suma una foto de frente más una muestra corta de voz.</p>
+      </div>
+      <div class="how-card">
+        <p class="how-card__num">02</p>
+        <h3>EchoFake genera</h3>
+        <p>Clona la voz al instante y, si lo pedís, arma un video de esa cara diciendo lo que escribiste.</p>
+      </div>
+      <div class="how-card">
+        <p class="how-card__num">03</p>
+        <h3>Mostrás y borrás</h3>
+        <p>Compartís el resultado con la audiencia y lo eliminás con un botón: nada queda dando vueltas.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
