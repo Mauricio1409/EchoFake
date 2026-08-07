@@ -1,0 +1,420 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EchoFake — Cómo funciona la IA que te clona</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+  {% include "api/_header.html" %}
+
+  <main class="wrap wrap--wide">
+    <div class="article-head">
+      <a class="back-link" href="{% url 'home' %}" id="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5m0 0l6 6m-6-6l6-6"/>
+        </svg>
+        Volver
+      </a>
+      <h1 class="h1--sm">Cómo funciona la IA que te clona</h1>
+      <p class="lede">
+        EchoFake usa dos familias de modelos generativos: uno clona tu voz, otro anima tu foto para
+        que hable. Antes de asustarte —o de relajarte— vale la pena abrir la caja negra. Esta página
+        sigue de cerca la explicación de
+        <a href="https://www.youtube.com/watch?v=iv-5mZ_9CPY" target="_blank" rel="noopener">"But how do AI images and videos actually work?"</a>
+        (Stephen Welch / Welch Labs, video invitado en el canal de 3Blue1Brown), con la menor
+        matemática posible.
+      </p>
+    </div>
+
+    <nav class="toc" aria-label="Contenido de la página">
+      <a href="#fundamentos">01 · Redes neuronales y embeddings</a>
+      <a href="#clip">02 · CLIP: conectar texto e imagen</a>
+      <a href="#difusion">03 · Difusión: revertir el ruido</a>
+      <a href="#ddim">04 · Por qué el ruido ayuda (y cómo acelerarlo)</a>
+      <a href="#guia">05 · Guiar la generación con texto</a>
+      <a href="#video">06 · De la imagen al video</a>
+      <a href="#audio">07 · Clonar una voz</a>
+      <a href="#seguridad">08 · Por qué importa</a>
+    </nav>
+
+    <section class="card article-section" id="fundamentos">
+      <div class="article-section__grid">
+        <div class="article-section__text">
+          <p class="article-section__eyebrow">01 · Fundamentos</p>
+          <h2>Redes neuronales y embeddings</h2>
+          <p>
+            Una red neuronal es, en el fondo, una función matemática gigante con millones de
+            parámetros (números) que se van ajustando durante el entrenamiento. Le mostrás
+            millones de ejemplos —fotos, texto, audio— y ella corrige esos números hasta que sus
+            predicciones se parecen cada vez más a la respuesta correcta. No "entiende" nada como
+            una persona: encuentra patrones estadísticos en los datos.
+          </p>
+          <p>
+            El concepto que hace falta para todo lo que sigue es el <strong>embedding</strong>:
+            convertir algo —una palabra, una imagen, un segundo de audio— en un vector, un punto en
+            un espacio de cientos de dimensiones, donde las cosas parecidas quedan cerca. "Perro" y
+            una foto de un perro no se parecen como archivos, pero un buen embedding los ubica en el
+            mismo barrio de ese espacio.
+          </p>
+        </div>
+        <div class="article-section__visual">
+          <figure class="diagram diagram--photo">
+            <img src="{% static 'img/neural-network.svg' %}" alt="Diagrama de una red neuronal genérica: una capa de entrada, una capa oculta y una capa de salida, con nodos conectados entre capas.">
+            <figcaption>Cburnett · <a href="https://commons.wikimedia.org/wiki/File:Artificial_neural_network.svg" target="_blank" rel="noopener">CC BY-SA 3.0</a>, Wikimedia Commons</figcaption>
+          </figure>
+          <div class="diagram diagram--embed" aria-hidden="true">
+            <span class="diagram__caption">espacio de embeddings</span>
+            <svg viewBox="0 0 400 220" class="embed-svg">
+              <line x1="80" y1="150" x2="140" y2="122" class="embed-link"/>
+              <line x1="300" y1="55" x2="345" y2="40" class="embed-link"/>
+              <circle cx="80" cy="150" r="5" class="embed-dot embed-dot--text"/>
+              <text x="92" y="154" class="embed-label">"un perro"</text>
+              <circle cx="140" cy="122" r="5" class="embed-dot embed-dot--img"/>
+              <text x="152" y="126" class="embed-label">foto de perro</text>
+              <circle cx="300" cy="55" r="5" class="embed-dot embed-dot--text"/>
+              <text x="222" y="42" class="embed-label">"un auto rojo"</text>
+              <circle cx="345" cy="40" r="5" class="embed-dot embed-dot--img"/>
+              <text x="253" y="26" class="embed-label">foto de auto</text>
+              <circle cx="55" cy="35" r="5" class="embed-dot embed-dot--text"/>
+              <text x="10" y="22" class="embed-label">"cielo despejado"</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card article-section" id="clip">
+      <div class="article-section__grid">
+        <div class="article-section__text">
+          <p class="article-section__eyebrow">02 · Puente</p>
+          <h2>CLIP: conectar texto e imagen</h2>
+          <p>
+            CLIP (OpenAI, 2021) entrena dos redes a la vez —una de texto, una de imagen— con un
+            truco simple: le mostrás un lote de pares reales (una foto de un perro junto al texto
+            "foto de un perro", una foto tuya junto a "foto de una persona") y le pedís que acerque
+            el vector de cada foto al de SU descripción, mientras aleja los vectores de todas las
+            combinaciones que no corresponden dentro del mismo lote. Esto se llama
+            <strong>aprendizaje contrastivo</strong>: el modelo aprende contrastando pares que
+            coinciden contra pares que no.
+          </p>
+          <p>
+            El resultado es un espacio donde texto e imagen conviven como vectores, y la distancia
+            entre ellos —medida con similitud coseno— indica qué tan bien se corresponden. Ese
+            espacio tiene geometría real: si a una foto tuya con sombrero le restás la misma foto
+            sin sombrero, el vector resultante queda más cerca de la palabra "sombrero" que de
+            cualquier otra. CLIP conecta los dos mundos, pero solo en una dirección: mapea texto e
+            imagen a vectores, todavía no genera nada.
+          </p>
+        </div>
+        <div class="article-section__visual">
+          <div class="diagram diagram--clip" aria-hidden="true">
+            <div class="clip-col">
+              <span class="clip-chip clip-chip--text">"un perro corriendo"</span>
+              <span class="clip-arrow">↓ encoder de texto</span>
+              <span class="clip-vec">[0.8, -0.2, 0.4, …]</span>
+            </div>
+            <div class="clip-match">≈</div>
+            <div class="clip-col">
+              <span class="clip-chip clip-chip--img">foto de un perro</span>
+              <span class="clip-arrow">↓ encoder de imagen</span>
+              <span class="clip-vec">[0.7, -0.3, 0.5, …]</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card article-section" id="difusion">
+      <div class="article-section__grid">
+        <div class="article-section__text">
+          <p class="article-section__eyebrow">03 · El núcleo</p>
+          <h2>Difusión: revertir el ruido</h2>
+          <p>
+            Semanas después de CLIP, un equipo de Berkeley publicó DDPM: la primera demostración de
+            que se podían generar imágenes de alta calidad revirtiendo un proceso de ruido. La idea
+            de base es simple: agarrás una imagen real, le sumás ruido gaussiano paso a paso hasta
+            que queda pura estática, y entrenás una red para revertir ese camino.
+          </p>
+          <p>
+            Lo contraintuitivo es cómo se entrena en la práctica: en vez de enseñarle a sacar un
+            pasito de ruido a la vez, se le pide predecir —desde cualquier punto del camino— el
+            ruido TOTAL que se sumó desde la imagen original. Suena más difícil, pero funciona mejor:
+            reduce la variabilidad de lo que el modelo tiene que aprender.
+          </p>
+          <p>
+            Otra forma de pensarlo, con un ejemplo de juguete: si reducís cada imagen a solo dos
+            números, cada imagen es un punto en un plano, y las imágenes "reales" forman una figura
+            —una espiral, para poner un caso—. Sumar ruido es dar pasos aleatorios alejándose de esa
+            espiral. El modelo aprende, para cada punto del plano y en cada momento del recorrido,
+            hacia dónde queda el camino de vuelta. Eso es literalmente un <strong>campo de
+            vectores</strong>: en cualquier lugar del espacio, señala "por acá se vuelve a algo
+            real".
+          </p>
+        </div>
+        <div class="article-section__visual">
+          <div class="diagram diagram--denoise" aria-hidden="true">
+            <div class="denoise-step" style="--noise:1; --i:0"></div>
+            <div class="denoise-step" style="--noise:.75; --i:1"></div>
+            <div class="denoise-step" style="--noise:.5; --i:2"></div>
+            <div class="denoise-step" style="--noise:.28; --i:3"></div>
+            <div class="denoise-step" style="--noise:.1; --i:4"></div>
+            <div class="denoise-step" style="--noise:0; --i:5"></div>
+          </div>
+          <p class="diagram__caption diagram__caption--under">ruido puro → imagen, paso a paso (el brillo recorre los pasos)</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card article-section" id="ddim">
+      <div class="article-section__grid">
+        <div class="article-section__text">
+          <p class="article-section__eyebrow">04 · El detalle que sorprende</p>
+          <h2>Por qué el ruido ayuda (y cómo acelerarlo)</h2>
+          <p>
+            DDPM no solo agrega ruido durante el entrenamiento: también agrega un poco de ruido
+            aleatorio en <strong>cada paso</strong> de la generación. Si se lo saca, el resultado
+            sale borroso. La razón: sin ese empujón extra, el modelo tiende a apuntar hacia el
+            promedio de las imágenes posibles en esa zona —y el promedio de muchas imágenes reales
+            es, visualmente, un borrón. El ruido evita que el proceso colapse hacia ese promedio.
+          </p>
+          <p>
+            El costo es que hacen falta muchísimos pasos, y por lo tanto muchísimo cómputo. Poco
+            después, <strong>DDIM</strong> mostró —apoyándose en resultados de física estadística—
+            que existe un camino equivalente sin el paso aleatorio, que llega a la misma distribución
+            final de imágenes con muchos menos pasos, de forma determinista. Es, en esencia, lo que
+            hoy hace que generar una imagen tome segundos y no minutos.
+          </p>
+        </div>
+        <div class="article-section__visual">
+          <div class="diagram diagram--ddim" aria-hidden="true">
+            <div class="ddim-row">
+              <span class="ddim-label">DDPM · ~1000 pasos, con ruido</span>
+              <div class="ddim-steps">
+                <div class="denoise-step denoise-step--sm" style="--noise:1; --i:0"></div>
+                <div class="denoise-step denoise-step--sm" style="--noise:.85; --i:1"></div>
+                <div class="denoise-step denoise-step--sm" style="--noise:.7; --i:2"></div>
+                <div class="denoise-step denoise-step--sm" style="--noise:.55; --i:3"></div>
+                <div class="denoise-step denoise-step--sm" style="--noise:.4; --i:4"></div>
+                <div class="denoise-step denoise-step--sm" style="--noise:.25; --i:5"></div>
+                <div class="denoise-step denoise-step--sm" style="--noise:.1; --i:6"></div>
+                <div class="denoise-step denoise-step--sm" style="--noise:0; --i:7"></div>
+              </div>
+            </div>
+            <div class="ddim-row">
+              <span class="ddim-label">DDIM · ~20 pasos, determinista</span>
+              <div class="ddim-steps">
+                <div class="denoise-step denoise-step--sm" style="--noise:1; --i:0"></div>
+                <div class="denoise-step denoise-step--sm" style="--noise:.4; --i:1"></div>
+                <div class="denoise-step denoise-step--sm" style="--noise:.12; --i:2"></div>
+                <div class="denoise-step denoise-step--sm" style="--noise:0; --i:3"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card article-section" id="guia">
+      <div class="article-section__grid">
+        <div class="article-section__text">
+          <p class="article-section__eyebrow">05 · Dirección</p>
+          <h2>Guiar la generación con texto</h2>
+          <p>
+            Con difusión sabemos revertir ruido, y con CLIP sabemos relacionar texto e imagen.
+            Unirlos no es trivial: la primera idea —darle al modelo el vector de texto como un dato
+            más y dejar que aprenda solo, algo que se llama <strong>condicionamiento</strong>—
+            funciona, pero no alcanza: el modelo tiende a ignorar parte del prompt.
+          </p>
+          <p>
+            La técnica que se volvió estándar se llama <strong>guía sin clasificador</strong>
+            (classifier-free guidance): durante el entrenamiento, a veces se le esconde el texto al
+            modelo. Terminás con dos comportamientos en la misma red: uno que ignora el prompt y
+            otro que sí lo usa. En cada paso de generación, restás el primero del segundo para
+            quedarte con la dirección que aporta específicamente el prompt, y la amplificás. Muchos
+            modelos de video van un paso más allá con <strong>prompts negativos</strong>: en vez de
+            restar "sin prompt", restan una descripción explícita de todo lo que no querés ver.
+          </p>
+        </div>
+        <div class="article-section__visual">
+          <div class="diagram diagram--guidance" aria-hidden="true">
+            <div class="guidance-row">
+              <span class="clip-chip clip-chip--text">sin prompt</span>
+              <span class="clip-arrow">−</span>
+              <span class="clip-chip clip-chip--img">con prompt</span>
+            </div>
+            <span class="clip-arrow">× α (amplificar)</span>
+            <div class="guidance-row">
+              <span class="clip-chip clip-chip--accent">dirección del prompt, reforzada</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card article-section" id="video">
+      <div class="article-section__grid">
+        <div class="article-section__text">
+          <p class="article-section__eyebrow">06 · Escala</p>
+          <h2>De la imagen al video</h2>
+          <p>
+            Un modelo de video no genera cada frame por separado: trata al video ENTERO como un
+            único punto en un espacio de dimensión todavía más gigante —un video es, ni más ni
+            menos, una secuencia de imágenes—. Arranca de puro ruido con esa forma completa y lo va
+            denoisando de punta a punta, muchas veces, con una red tipo <strong>transformer</strong>
+            —la misma familia de arquitectura detrás de modelos de lenguaje como ChatGPT— en vez de
+            la clásica U-Net de las primeras versiones. Como el transformer procesa el video
+            completo en cada paso, la coherencia entre frames sale del propio proceso: no hace falta
+            un paso aparte para que "no titile".
+          </p>
+          <p>
+            En el caso puntual de EchoFake, el modelo (fal.ai · fabric-1.0) no genera video desde
+            texto: parte de una foto fija y un audio, y su trabajo es mucho más acotado —predecir el
+            movimiento de labios, mandíbula y cabeza que sincroniza con ese audio. Es un problema
+            más chico que "generar cualquier video", por eso alcanza con una sola foto.
+          </p>
+        </div>
+        <div class="article-section__visual">
+          <div class="diagram diagram--frames" aria-hidden="true">
+            <div class="frame-row">
+              <div class="frame-box">1</div>
+              <div class="frame-box">2</div>
+              <div class="frame-box">3</div>
+              <div class="frame-box">4</div>
+            </div>
+            <div class="frame-attention" aria-hidden="true"></div>
+          </div>
+          <p class="diagram__caption diagram__caption--under">se denoisea el video entero, no frame a frame</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card article-section" id="audio">
+      <div class="article-section__grid">
+        <div class="article-section__text">
+          <p class="article-section__eyebrow">07 · Extendiendo la idea</p>
+          <h2>Clonar una voz</h2>
+          <p class="hint">
+            El video en el que se basa esta página habla exclusivamente de imagen y video, no de
+            audio. Lo que sigue es la misma lógica aplicada a sonido —una extensión razonable, no
+            algo que ese video explique puntualmente.
+          </p>
+          <p>
+            Un <strong>espectrograma</strong> convierte una onda de sonido en una imagen de
+            frecuencias a lo largo del tiempo —eje X: tiempo, eje Y: tono, brillo: volumen—. Con el
+            audio convertido en "imagen", el mismo marco de difusión + condicionamiento aplica tal
+            cual.
+          </p>
+          <p>
+            Para clonar una voz puntual con apenas 10 a 30 segundos de muestra, el condicionamiento
+            no es un texto sino un embedding de "timbre" extraído de esa muestra —un punto que
+            captura el tono, el acento y la textura de esa voz— y se usa para dirigir un modelo de
+            texto-a-voz hacia esa identidad específica. Es la misma idea de "vector que guía la
+            generación", aplicada a identidad vocal en vez de a un prompt de texto.
+          </p>
+        </div>
+        <div class="article-section__visual">
+          <figure class="diagram diagram--photo">
+            <img src="{% static 'img/spectrogram-real.jpg' %}" alt="Espectrograma real de una vocal hablada: el eje horizontal es tiempo, el vertical es frecuencia, y el brillo indica energía en cada banda.">
+            <figcaption>Lee Ball · <a href="https://commons.wikimedia.org/wiki/File:Spectrogram_of_open-mid_back_rounded_vowel_(IPA_%C9%94).png" target="_blank" rel="noopener">CC0</a>, Wikimedia Commons</figcaption>
+          </figure>
+          <div class="diagram diagram--spectrogram" aria-hidden="true">
+            <div class="spectro-bar" style="--h:.3; --d:0"></div>
+            <div class="spectro-bar" style="--h:.6; --d:1"></div>
+            <div class="spectro-bar" style="--h:.9; --d:2"></div>
+            <div class="spectro-bar" style="--h:.5; --d:3"></div>
+            <div class="spectro-bar" style="--h:.75; --d:4"></div>
+            <div class="spectro-bar" style="--h:.4; --d:5"></div>
+            <div class="spectro-bar" style="--h:.85; --d:6"></div>
+            <div class="spectro-bar" style="--h:.35; --d:7"></div>
+            <div class="spectro-bar" style="--h:.65; --d:8"></div>
+            <div class="spectro-bar" style="--h:.2; --d:9"></div>
+          </div>
+          <p class="diagram__caption diagram__caption--under">espectrograma estilizado (animado)</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card article-section article-section--highlight" id="seguridad">
+      <p class="article-section__eyebrow">08 · Por qué importa</p>
+      <h2>Ningún paso "copia y pega" tu cara o tu voz</h2>
+      <p>
+        En todo este recorrido, el modelo nunca guarda ni reproduce un archivo original: genera
+        algo nuevo, guiado por un puñado de números. Eso tiene consecuencias concretas para la
+        seguridad:
+      </p>
+      <ul class="article-list">
+        <li>No hace falta una sesión de grabación larga: 10-30 segundos de audio o una sola foto
+          ya alcanzan para ubicar un punto lo bastante preciso en el espacio de embeddings.</li>
+        <li>Es difícil de detectar con reglas simples ("buscar el archivo original"), porque no
+          existe un archivo original en el resultado —es una reconstrucción estadística.</li>
+        <li>La barrera de entrada es baja: estos mismos modelos, empaquetados como productos, son
+          gratis o cuestan centavos.</li>
+      </ul>
+      <p>
+        Ese es el mensaje central de esta demo: no hace falta ser un atacante sofisticado para
+        producir algo convincente.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn--primary" href="{% url 'create' %}">Probar la demo</a>
+        <a class="btn btn--ghost" href="{% url 'subject-list' %}">Ver casos generados</a>
+      </div>
+    </section>
+
+    <section class="card glossary">
+      <h2>Glosario rápido</h2>
+      <dl class="glossary__list">
+        <div class="glossary__item">
+          <dt>Embedding</dt>
+          <dd>Representación numérica de algo (texto, imagen, audio) donde las cosas parecidas
+            quedan cerca en el espacio.</dd>
+        </div>
+        <div class="glossary__item">
+          <dt>Ruido gaussiano</dt>
+          <dd>Estática aleatoria que se usa para "romper" una imagen paso a paso durante el
+            entrenamiento de un modelo de difusión.</dd>
+        </div>
+        <div class="glossary__item">
+          <dt>Campo de vectores</dt>
+          <dd>Para cada punto del espacio de imágenes, la dirección que el modelo aprendió para
+            volver hacia algo real.</dd>
+        </div>
+        <div class="glossary__item">
+          <dt>DDIM</dt>
+          <dd>Variante de generación sin el paso de ruido aleatorio: mismo resultado final, muchos
+            menos pasos, de forma determinista.</dd>
+        </div>
+        <div class="glossary__item">
+          <dt>Guía sin clasificador</dt>
+          <dd>Técnica que amplifica la diferencia entre "con prompt" y "sin prompt" para que el
+            resultado sea más fiel al texto pedido.</dd>
+        </div>
+        <div class="glossary__item">
+          <dt>Atención / transformer</dt>
+          <dd>Arquitectura que permite que cada parte de la entrada "mire" a las demás antes de
+            decidir su predicción —la misma familia detrás de los modelos de lenguaje.</dd>
+        </div>
+        <div class="glossary__item">
+          <dt>Espacio latente</dt>
+          <dd>Versión comprimida de los datos donde es mucho más barato hacer los cálculos.</dd>
+        </div>
+        <div class="glossary__item">
+          <dt>CLIP</dt>
+          <dd>Modelo que conecta texto e imagen en un mismo espacio de embeddings, entrenado con
+            millones de pares descripción–foto.</dd>
+        </div>
+      </dl>
+    </section>
+  </main>
+
+  <script>
+    document.getElementById("back-link").addEventListener("click", (e) => {
+      if (document.referrer && document.referrer.startsWith(window.location.origin) && window.history.length > 1) {
+        e.preventDefault();
+        history.back();
+      }
+    });
+  </script>
+</body>
+</html>
