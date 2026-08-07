@@ -107,3 +107,17 @@ CELERY_BROKER_URL = env('CELERY_BROKER_URL')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND')
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
+
+# External APIs (deepfake features)
+ELEVENLABS_API_KEY = env('ELEVENLABS_API_KEY', default='')
+ELEVENLABS_BASE_URL = env('ELEVENLABS_BASE_URL', default='https://api.elevenlabs.io')
+FAL_KEY = env('FAL_KEY', default='')
+FAL_BASE_URL = env('FAL_BASE_URL', default='https://queue.fal.run')
+FAL_STORAGE_URL = env('FAL_STORAGE_URL', default='https://rest.fal.ai')
+FAL_MODEL = env('FAL_MODEL', default='veed/fabric-1.0')
+FAL_RESOLUTION = env('FAL_RESOLUTION', default='480p')
+FAL_POLL_INTERVAL = env.float('FAL_POLL_INTERVAL', default=3.0)
+FAL_POLL_TIMEOUT = env.float('FAL_POLL_TIMEOUT', default=300.0)
+FAL_OBJECT_TTL_SECONDS = env.int('FAL_OBJECT_TTL_SECONDS', default=3600)
+FAL_PLATFORM_URL = env('FAL_PLATFORM_URL', default='https://api.fal.ai/v1')
+FAL_ADMIN_KEY = env('FAL_ADMIN_KEY', default='')  # no fallback to FAL_KEY — see full-data-purge design.md decision #4
