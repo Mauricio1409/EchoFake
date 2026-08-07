@@ -1,0 +1,374 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EchoFake — Panel de generación</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+  {% include "api/_header.html" %}
+
+  <main class="wrap stack">
+    <div>
+      <a class="back-link" href="{% url 'subject-list' %}" id="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5m0 0l6 6m-6-6l6-6"/>
+        </svg>
+        Volver al listado
+      </a>
+      <h1>Generar</h1>
+      <p class="lede">
+        La voz ya está clonada. Escribí lo que querés que diga y elegí el formato.
+        El video tarda entre 2 y 5 minutos.
+        <span class="subject-tag">Sujeto <code id="subject-id">{{ subject_id }}</code></span>
+      </p>
+    </div>
+
+    <!-- Consola en vivo: narra cada paso real del job -->
+    <section class="term" aria-label="Registro de actividad">
+      <div class="term__bar">
+        <div class="term__dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="term__title">echofake@utn — pipeline</span>
+      </div>
+      <div class="term__body" id="log" aria-live="polite">
+        <div class="log log--idle">Esperando instrucciones<span class="caret" aria-hidden="true"></span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Texto a sintetizar</h2>
+      <div class="field">
+        <label for="texto" class="hidden">Texto a sintetizar</label>
+        <textarea id="texto" rows="3" placeholder="Escribí acá lo que la persona nunca dijo..." required></textarea>
+        <p class="hint">Entre 10 y 500 caracteres.</p>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn--ghost" data-job-type="voice">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+          </svg>
+          Solo voz
+        </button>
+        <button class="btn btn--primary" data-job-type="video">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="13" height="14" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>
+          </svg>
+          Video hablando
+        </button>
+      </div>
+    </section>
+
+    <div id="result"></div>
+    <div id="error" role="alert" aria-live="polite"></div>
+
+    <section class="card danger-zone">
+      <h2>Zona de peligro</h2>
+      <p class="hint">
+        Elimina la voz clonada, el video generado y todos los registros locales.
+        La foto y el audio subidos a fal.ai se revocan al instante (quedan inaccesibles)
+        y expiran dentro de la hora. Es irreversible.
+      </p>
+      <button id="purge-btn" class="btn btn--danger btn--block danger-zone__btn">BORRAR TODO</button>
+    </section>
+  </main>
+
+  <dialog id="purge-modal" class="modal">
+    <div class="modal__inner">
+      <div class="modal__bar">
+        <div class="term__dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="modal__bar-title">echofake@utn — confirmar</span>
+      </div>
+      <div class="modal__body">
+        <p class="modal__prompt">$ echofake purge --subject={{ subject_id }}</p>
+        <p class="modal__text">
+          Elimina la voz clonada, el video generado y todos los registros locales.
+          La foto y el audio subidos a fal.ai se revocan al instante y expiran dentro de la hora.
+          <strong>Es irreversible.</strong>
+        </p>
+      </div>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" id="purge-cancel" autofocus>Cancelar</button>
+        <button type="button" class="btn btn--danger" id="purge-confirm">Sí, borrar todo</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    document.getElementById("back-link").addEventListener("click", (e) => {
+      if (document.referrer && document.referrer.startsWith(window.location.origin) && window.history.length > 1) {
+        e.preventDefault();
+        history.back();
+      }
+    });
+
+    const subjectId = document.getElementById("subject-id").textContent.trim();
+    const logBox = document.getElementById("log");
+    const errorBox = document.getElementById("error");
+    const resultBox = document.getElementById("result");
+    const textoField = document.getElementById("texto");
+    const buttons = document.querySelectorAll("button[data-job-type]");
+
+    let pollHandle = null;
+    let timerHandle = null;
+    let startedAt = null;
+    const seen = new Set();
+
+    // Cada línea del log corresponde a un estado real del job.
+    const STATUS_LOG = {
+      pending: "job en cola",
+      audio_ready: "audio sintetizado con la voz clonada",
+      video_processing: "generando video · fal.ai / fabric-1.0",
+    };
+
+    function write(text, kind = "") {
+      const line = document.createElement("div");
+      line.className = kind ? `log ${kind}` : "log";
+      line.textContent = text;
+      logBox.appendChild(line);
+      logBox.scrollTop = logBox.scrollHeight;
+      return line;
+    }
+
+    function elapsed() {
+      return Math.floor((Date.now() - startedAt) / 1000);
+    }
+
+    function setBusy(busy) {
+      buttons.forEach((b) => { b.disabled = busy; });
+    }
+
+    function stopPolling() {
+      clearInterval(pollHandle);
+      clearInterval(timerHandle);
+      pollHandle = timerHandle = null;
+      setBusy(false);
+    }
+
+    async function createJob(jobType) {
+      const texto = textoField.value.trim();
+      errorBox.innerHTML = "";
+      resultBox.innerHTML = "";
+
+      if (texto.length < 10) {
+        write("! el texto necesita al menos 10 caracteres", "log--err");
+        textoField.focus();
+        return;
+      }
+      if (texto.length > 500) {
+        write("! el texto supera los 500 caracteres", "log--err");
+        textoField.focus();
+        return;
+      }
+
+      logBox.innerHTML = "";
+      seen.clear();
+      startedAt = Date.now();
+      setBusy(true);
+
+      write(`$ echofake generate --type=${jobType}`, "log--cmd");
+
+      try {
+        const response = await fetch("/api/jobs/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject: subjectId, job_type: jobType, texto: texto }),
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          const detail = Object.entries(data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
+            .join(" · ");
+          write(`! ${detail}`, "log--err");
+          setBusy(false);
+          return;
+        }
+
+        write(`> job ${data.id}`);
+        pollJob(data.id);
+      } catch (err) {
+        write(`! sin conexión con el servidor: ${err.message}`, "log--err");
+        setBusy(false);
+      }
+    }
+
+    function pollJob(jobId) {
+      const ticker = write("> procesando · 0s");
+      timerHandle = setInterval(() => {
+        ticker.textContent = `> procesando · ${elapsed()}s`;
+      }, 1000);
+
+      pollHandle = setInterval(async () => {
+        let job;
+        try {
+          const response = await fetch(`/api/jobs/${jobId}/`);
+          job = await response.json();
+        } catch (err) {
+          return; // reintenta en el próximo tick
+        }
+
+        if (STATUS_LOG[job.status] && !seen.has(job.status)) {
+          seen.add(job.status);
+          ticker.before(Object.assign(document.createElement("div"), {
+            className: "log",
+            textContent: `> ${STATUS_LOG[job.status]}`,
+          }));
+        }
+
+        if (job.status === "done") {
+          stopPolling();
+          ticker.textContent = `> listo en ${elapsed()}s`;
+          ticker.className = "log log--ok";
+          render(job);
+        } else if (job.status === "error") {
+          stopPolling();
+          ticker.remove();
+          write(`! ${job.error_msg || "la generación falló"}`, "log--err");
+        }
+      }, 2000);
+    }
+
+    function render(job) {
+      resultBox.innerHTML = "";
+      if (!job.audio && !job.video) return;
+
+      const grid = document.createElement("div");
+      grid.className = "media-grid";
+
+      if (job.audio) {
+        const block = document.createElement("div");
+        block.className = "media";
+        block.innerHTML = '<p class="media__label">Voz clonada</p>';
+        const audio = document.createElement("audio");
+        audio.controls = true;
+        audio.src = job.audio;
+        block.appendChild(audio);
+        grid.appendChild(block);
+      }
+
+      if (job.video) {
+        const block = document.createElement("div");
+        block.className = "media";
+        block.innerHTML = '<p class="media__label">Video generado</p>';
+        const video = document.createElement("video");
+        video.controls = true;
+        video.src = job.video;
+        block.appendChild(video);
+        grid.appendChild(block);
+      }
+
+      resultBox.appendChild(grid);
+      resultBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => createJob(button.dataset.jobType));
+    });
+
+    // Zona de peligro: narra cada superficie real, nunca un "todo borrado" global.
+    const purgeBtn = document.getElementById("purge-btn");
+
+    const PURGE_LINES = {
+      elevenlabs_voice: {
+        deleted: "voz clonada eliminada de elevenlabs",
+      },
+      fal_inputs: {
+        revoked: "inputs revocados en fal — acceso denegado, los bytes expiran en <=1h",
+      },
+      fal_output: {
+        deleted: "video eliminado del cdn de fal",
+      },
+      local: {
+        deleted: "archivos y registros locales eliminados",
+      },
+    };
+
+    function writePurgeEntry(entry) {
+      const happyLine = PURGE_LINES[entry.surface] && PURGE_LINES[entry.surface][entry.status];
+      if (happyLine) {
+        write(`> ${happyLine}`, "log--ok");
+        return;
+      }
+      if (entry.status === "failed") {
+        write(`! ${entry.surface}: ${entry.detail}`, "log--err");
+        return;
+      }
+      // skipped (or any other non-happy terminal state)
+      write(`- ${entry.surface}: ${entry.detail}`);
+    }
+
+    const purgeModal = document.getElementById("purge-modal");
+    const purgeCancelBtn = document.getElementById("purge-cancel");
+    const purgeConfirmBtn = document.getElementById("purge-confirm");
+
+    purgeBtn.addEventListener("click", () => purgeModal.showModal());
+    purgeCancelBtn.addEventListener("click", () => purgeModal.close());
+
+    // Clic en el backdrop (::backdrop) burbujea como target === dialog.
+    purgeModal.addEventListener("click", (e) => {
+      if (e.target === purgeModal) purgeModal.close();
+    });
+
+    purgeConfirmBtn.addEventListener("click", async () => {
+      purgeModal.close();
+      await runPurge();
+    });
+
+    async function runPurge() {
+      logBox.innerHTML = "";
+      seen.clear();
+      purgeBtn.disabled = true;
+
+      write(`$ echofake purge --subject=${subjectId}`, "log--cmd");
+
+      try {
+        const response = await fetch(`/api/subjects/${subjectId}/purge/`, { method: "DELETE" });
+        const data = await response.json();
+
+        if (!response.ok) {
+          write(`! no se pudo ejecutar el purge: ${response.status}`, "log--err");
+          purgeBtn.disabled = false;
+          return;
+        }
+
+        const report = data.report || [];
+        report.forEach(writePurgeEntry);
+
+        const anyFailed = report.some((entry) => entry.status === "failed");
+        if (!anyFailed) {
+          setBusy(true);
+          redirectAfterPurge();
+        } else {
+          purgeBtn.disabled = false;
+        }
+      } catch (err) {
+        write(`! sin conexión con el servidor: ${err.message}`, "log--err");
+        purgeBtn.disabled = false;
+      }
+    }
+
+    function redirectAfterPurge() {
+      write("> caso eliminado — ya no existe", "log--ok");
+      let secondsLeft = 3;
+      const countdown = write(`> volviendo al listado en ${secondsLeft}s`);
+      const tick = setInterval(() => {
+        secondsLeft -= 1;
+        if (secondsLeft <= 0) {
+          clearInterval(tick);
+          window.location.href = "{% url 'subject-list' %}?deleted=1";
+          return;
+        }
+        countdown.textContent = `> volviendo al listado en ${secondsLeft}s`;
+      }, 1000);
+    }
+
+    textoField.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        document.querySelector('button[data-job-type="video"]').click();
+      }
+    });
+  </script>
+</body>
+</html>

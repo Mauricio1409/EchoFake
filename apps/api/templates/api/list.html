@@ -1,0 +1,106 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EchoFake — Casos generados</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+  {% include "api/_header.html" %}
+
+  <main class="wrap">
+    <div class="list-head">
+      <div>
+        <h1 class="h1--sm">Casos generados</h1>
+        <p class="lede">Todos los sujetos registrados en esta demo. Al borrar un caso desde su panel, desaparece de acá.</p>
+      </div>
+      <a class="btn btn--primary" href="{% url 'create' %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Nuevo caso
+      </a>
+    </div>
+
+    <div id="banner"></div>
+
+    <div id="list-box" style="margin-top: var(--sp-8);">
+      <div class="empty-state" id="loading-state">Cargando casos<span class="caret" aria-hidden="true"></span></div>
+    </div>
+  </main>
+
+  <script>
+    if (new URLSearchParams(window.location.search).get("deleted") === "1") {
+      document.getElementById("banner").innerHTML = `
+        <div class="banner banner--ok" style="margin-top: var(--sp-6);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          <div>Ese caso ya no existe: se borró junto con su voz clonada y sus archivos.</div>
+        </div>`;
+      history.replaceState(null, "", window.location.pathname);
+    }
+
+    const STATUS_LABELS = {
+      created: "Registrado",
+      voice_ready: "Voz lista",
+      error: "Error",
+      deleted: "Borrado",
+    };
+
+    function formatDate(iso) {
+      const date = new Date(iso);
+      return date.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function renderRow(subject) {
+      const thumb = subject.photo
+        ? `<img class="subject-row__thumb" src="${subject.photo}" alt="">`
+        : `<div class="subject-row__thumb"></div>`;
+      const statusClass = `status-pill--${subject.status}`;
+      const statusLabel = STATUS_LABELS[subject.status] || subject.status;
+
+      return `
+        <a class="subject-row" href="/panel/${subject.id}/">
+          ${thumb}
+          <div class="subject-row__body">
+            <div class="subject-row__name">${subject.nombre_display}</div>
+            <div class="subject-row__meta">${formatDate(subject.created_at)}</div>
+          </div>
+          <span class="status-pill ${statusClass}">${statusLabel}</span>
+        </a>`;
+    }
+
+    async function loadSubjects() {
+      const box = document.getElementById("list-box");
+      try {
+        const response = await fetch("/api/subjects/");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        const subjects = (Array.isArray(data) ? data : data.results || [])
+          .slice()
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        if (subjects.length === 0) {
+          box.innerHTML = `
+            <div class="empty-state">
+              <p>Todavía no generaste ningún caso.</p>
+              <a class="btn btn--ghost" style="margin-top: var(--sp-4);" href="{% url 'create' %}">Registrar el primero</a>
+            </div>`;
+          return;
+        }
+
+        box.innerHTML = `<div class="subject-list">${subjects.map(renderRow).join("")}</div>`;
+      } catch (err) {
+        box.innerHTML = `
+          <div class="empty-state">
+            <p>No se pudo cargar el listado. ${err.message}</p>
+          </div>`;
+      }
+    }
+
+    loadSubjects();
+  </script>
+</body>
+</html>
