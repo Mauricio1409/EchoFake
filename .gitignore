@@ -13,3 +13,6 @@ wheels/
 # Django
 db.sqlite3
 /media/
+openspec
+
+.atl
