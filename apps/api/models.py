@@ -2,17 +2,27 @@ from django.db import models
 import uuid
 
 
+def subject_upload_to(instance, filename):
+    return f"subjects/{instance.pk}/{filename}"
+
+
+def job_upload_to(instance, filename):
+    return f"jobs/{instance.pk}/{filename}"
+
+
 class Subject(models.Model):
     STATUS_CHOICES = [
         ("created", "Creado"),
         ("voice_ready", "Voz lista"),
+        ("error", "Error"),
         ("deleted", "Borrado"),
     ]
 
-    id = models.CharField(max_length=20, primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre_display = models.CharField(max_length=100)
     consent_signed = models.BooleanField(default=False)
-    photo = models.ImageField(upload_to="subjects/%(id)s/", blank=True, null=True)
+    photo = models.ImageField(upload_to=subject_upload_to, blank=True, null=True)
+    audio_sample = models.FileField(upload_to=subject_upload_to, blank=True, null=True)
     voice_id = models.CharField(max_length=100, blank=True, null=True)  # de ElevenLabs
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="created")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -31,12 +41,20 @@ class Job(models.Model):
         ("error", "Error"),
     ]
 
-    id = models.CharField(max_length=20, primary_key=True, default=uuid.uuid4, editable=False)
+    JOB_TYPE_CHOICES = [
+        ("voice", "Voz"),
+        ("video", "Video"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="jobs")
-    texto = models.TextField()
-    audio = models.FileField(upload_to="jobs/%(id)s/", blank=True, null=True)
-    did_talk_id = models.CharField(max_length=100, blank=True, null=True)
-    video = models.FileField(upload_to="jobs/%(id)s/", blank=True, null=True)
+    job_type = models.CharField(max_length=20, choices=JOB_TYPE_CHOICES, default="voice")
+    texto = models.TextField(blank=True, default="")
+    audio = models.FileField(upload_to=job_upload_to, blank=True, null=True)
+    fal_request_id = models.CharField(max_length=100, blank=True, null=True)
+    fal_image_url = models.URLField(max_length=500, blank=True, null=True)
+    fal_audio_url = models.URLField(max_length=500, blank=True, null=True)
+    video = models.FileField(upload_to=job_upload_to, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     error_msg = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
