@@ -343,6 +343,22 @@ class FalClientTests(SimpleTestCase):
         with self.assertRaises(ExternalAPIError):
             client.set_file_acl("https://v3.fal.media/files/b/abc/photo.jpg")
 
+    def test_set_file_acl_404_is_silent_noop(self):
+        def handler(request):
+            return httpx.Response(404)
+
+        client = make_client(None, platform_handler=handler)
+
+        client.set_file_acl("https://v3.fal.media/files/b/abc/photo.jpg")  # must not raise
+
+    def test_set_file_acl_410_is_silent_noop(self):
+        def handler(request):
+            return httpx.Response(410)
+
+        client = make_client(None, platform_handler=handler)
+
+        client.set_file_acl("https://v3.fal.media/files/b/abc/photo.jpg")  # must not raise
+
     def test_ttl_headers_empty_when_ttl_seconds_falsy(self):
         client = make_client(None, ttl_seconds=0)
 

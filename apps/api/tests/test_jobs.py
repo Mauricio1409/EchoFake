@@ -114,3 +114,28 @@ class JobViewSetTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], str(job.pk))
+
+    def test_list_jobs_filtered_by_subject_returns_only_that_subjects_jobs_in_order(self):
+        subject = self._voice_ready_subject()
+        other_subject = self._voice_ready_subject()
+        job_1 = Job.objects.create(subject=subject, job_type="voice", texto="primero")
+        job_2 = Job.objects.create(subject=subject, job_type="video", texto="segundo")
+        Job.objects.create(subject=other_subject, job_type="voice", texto="ajeno")
+
+        response = self.client.get(f"/api/jobs/?subject={subject.pk}")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [item["id"] for item in response.data],
+            [str(job_1.pk), str(job_2.pk)],
+        )
+
+    def test_list_jobs_without_subject_filter_returns_all_jobs(self):
+        subject = self._voice_ready_subject()
+        Job.objects.create(subject=subject, job_type="voice", texto="uno")
+        Job.objects.create(subject=subject, job_type="video", texto="dos")
+
+        response = self.client.get("/api/jobs/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)

@@ -114,6 +114,7 @@
     let timerHandle = null;
     let startedAt = null;
     const seen = new Set();
+    const renderedJobs = new Set();
 
     // Cada línea del log corresponde a un estado real del job.
     const STATUS_LOG = {
@@ -149,7 +150,6 @@
     async function createJob(jobType) {
       const texto = textoField.value.trim();
       errorBox.innerHTML = "";
-      resultBox.innerHTML = "";
 
       if (texto.length < 10) {
         write("! el texto necesita al menos 10 caracteres", "log--err");
@@ -231,8 +231,9 @@
     }
 
     function render(job) {
-      resultBox.innerHTML = "";
       if (!job.audio && !job.video) return;
+      if (renderedJobs.has(job.id)) return;
+      renderedJobs.add(job.id);
 
       const grid = document.createElement("div");
       grid.className = "media-grid";
@@ -262,6 +263,18 @@
       resultBox.appendChild(grid);
       resultBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
+
+    async function loadExistingJobs() {
+      try {
+        const response = await fetch(`/api/jobs/?subject=${subjectId}`);
+        if (!response.ok) return;
+        const jobs = await response.json();
+        jobs.filter((job) => job.status === "done").forEach(render);
+      } catch (err) {
+        // sin conexión al cargar: el usuario puede seguir generando de todos modos
+      }
+    }
+    loadExistingJobs();
 
     buttons.forEach((button) => {
       button.addEventListener("click", () => createJob(button.dataset.jobType));

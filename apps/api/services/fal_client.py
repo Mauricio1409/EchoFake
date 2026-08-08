@@ -158,6 +158,8 @@ class FalClient:
                     headers=self._headers(),
                     json={"default": default},
                 )
+                if response.status_code in (404, 410):
+                    return  # ya expiró solo (TTL) — idempotente, no hay nada que revocar
                 response.raise_for_status()
         except httpx.HTTPError as exc:
             raise ExternalAPIError("fal", str(exc)) from exc

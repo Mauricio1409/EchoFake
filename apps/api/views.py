@@ -60,6 +60,9 @@ class JobViewSet(
         return JobSerializer
 
     def get_queryset(self):
+        subject_id = self.request.query_params.get("subject")
+        if subject_id:
+            return self.service.repository.list_by_subject(subject_id)
         return self.service.repository.all()
 
     def create(self, request, *args, **kwargs):
