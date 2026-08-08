@@ -1,0 +1,58 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EchoFake — Generar caso</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+  {% include "api/_header.html" %}
+
+  <main class="wrap">
+    <div>
+      <a class="back-link" href="{% url 'subject-list' %}" id="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5m0 0l6 6m-6-6l6-6"/>
+        </svg>
+        Volver
+      </a>
+      <h1 class="h1--sm">¿Cómo querés cargar el caso?</h1>
+      <p class="lede">Las dos opciones terminan en lo mismo: una voz clonada y un video hablando. Cambia solo cómo se junta la foto y el audio.</p>
+    </div>
+
+    <div class="choice-grid">
+      <a class="choice-card" href="{% url 'create-manual' %}">
+        <div class="choice-card__icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
+          </svg>
+        </div>
+        <h2>Carga manual</h2>
+        <p>Subís (o grabás) un archivo de audio y una foto por separado. Ideal para preparar un caso con calma, con tus propios archivos.</p>
+        <span class="choice-card__cta">Elegir carga manual →</span>
+      </a>
+
+      <a class="choice-card choice-card--highlight" href="{% url 'create-auto' %}">
+        <div class="choice-card__icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="6" width="14" height="12" rx="2"/><path d="M17 10l4-2v8l-4-2"/>
+          </svg>
+        </div>
+        <h2>Carga automática</h2>
+        <p>Cámara y micrófono en vivo: la persona lee un texto en pantalla, se le saca una foto y se le graba la voz al mismo tiempo. El flujo pensado para HackerTech.</p>
+        <span class="choice-card__cta">Elegir carga automática →</span>
+      </a>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById("back-link").addEventListener("click", (e) => {
+      if (document.referrer && document.referrer.startsWith(window.location.origin) && window.history.length > 1) {
+        e.preventDefault();
+        history.back();
+      }
+    });
+  </script>
+</body>
+</html>

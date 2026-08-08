@@ -17,8 +17,8 @@
         </svg>
         Volver al listado
       </a>
-      <h1>Generar</h1>
-      <p class="lede">
+      <h1 id="page-title">Generar</h1>
+      <p class="lede" id="page-lede">
         La voz ya está clonada. Escribí lo que querés que diga y elegí el formato.
         El video tarda entre 2 y 5 minutos.
         <span class="subject-tag">Sujeto <code id="subject-id">{{ subject_id }}</code></span>
@@ -26,7 +26,7 @@
     </div>
 
     <!-- Consola en vivo: narra cada paso real del job -->
-    <section class="term" aria-label="Registro de actividad">
+    <section class="term" id="live-console" aria-label="Registro de actividad">
       <div class="term__bar">
         <div class="term__dots" aria-hidden="true"><i></i><i></i><i></i></div>
         <span class="term__title">echofake@utn — pipeline</span>
@@ -36,7 +36,7 @@
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" id="generate-card">
       <h2>Texto a sintetizar</h2>
       <div class="field">
         <label for="texto" class="hidden">Texto a sintetizar</label>
@@ -109,6 +109,19 @@
     const resultBox = document.getElementById("result");
     const textoField = document.getElementById("texto");
     const buttons = document.querySelectorAll("button[data-job-type]");
+
+    // La carga automática ya generó su único video antes de llegar acá:
+    // esta vista pasa a ser "mostrame el resultado", no "generar más".
+    const AUTO_MODE = new URLSearchParams(window.location.search).get("mode") === "auto";
+    if (AUTO_MODE) {
+      document.getElementById("page-title").textContent = "Tu video";
+      document.getElementById("page-lede").innerHTML = `
+        Tu voz ya está clonada y tu video, listo.
+        <span class="subject-tag">Sujeto <code id="subject-id-auto">${subjectId}</code></span>
+      `;
+      document.getElementById("generate-card").classList.add("hidden");
+      document.getElementById("live-console").classList.add("hidden");
+    }
 
     let pollHandle = null;
     let timerHandle = null;
@@ -238,7 +251,7 @@
       const grid = document.createElement("div");
       grid.className = "media-grid";
 
-      if (job.audio) {
+      if (job.audio && !AUTO_MODE) {
         const block = document.createElement("div");
         block.className = "media";
         block.innerHTML = '<p class="media__label">Voz clonada</p>';
@@ -330,6 +343,7 @@
     });
 
     async function runPurge() {
+      document.getElementById("live-console").classList.remove("hidden");
       logBox.innerHTML = "";
       seen.clear();
       purgeBtn.disabled = true;

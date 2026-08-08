@@ -591,6 +591,328 @@ input:focus-visible {
   min-width: 0;
 }
 
+/* ── Muestra de voz: subir o grabar ─────────────────── */
+
+.audio-tabs {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.audio-tab {
+  padding: var(--sp-2) var(--sp-4);
+  min-height: 40px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: .8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .18s ease, color .18s ease, background-color .18s ease;
+}
+
+.audio-tab:hover { color: var(--text); border-color: var(--green-dim); }
+
+.audio-tab.is-active {
+  color: var(--bg);
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.audio-tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(34, 230, 127, .28);
+}
+
+.recorder {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+.recorder__btn {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+
+.recorder__btn:hover { border-color: var(--green-dim); color: var(--green); }
+
+.recorder__btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(34, 230, 127, .28);
+}
+
+.recorder__btn.is-recording {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: rgba(255, 95, 87, .12);
+  animation: recorder-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes recorder-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 95, 87, .35); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 95, 87, 0); }
+}
+
+.recorder__status {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.recorder__bars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+}
+
+.recorder__bars span {
+  width: 3px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 2px;
+  transition: background-color .18s ease;
+}
+
+.recorder__btn.is-recording ~ .recorder__status .recorder__bars span {
+  background: var(--danger);
+  animation: recorder-bar 1s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * .12s);
+}
+
+@keyframes recorder-bar {
+  0%, 100% { height: 6px; }
+  50% { height: 20px; }
+}
+
+.recorder__time {
+  font-size: .8125rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.recorder__preview {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.recorder__preview.hidden { display: none; }
+
+.recorder__preview audio {
+  flex: 1;
+  min-width: 200px;
+  height: 40px;
+}
+
+.btn--sm {
+  min-height: 36px;
+  padding: var(--sp-2) var(--sp-4);
+  font-size: .8125rem;
+}
+
+/* ── Elección de flujo de carga ──────────────────────── */
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--sp-4);
+  margin-top: var(--sp-8);
+}
+
+.choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+
+.choice-card:hover {
+  border-color: var(--green-dim);
+  transform: translateY(-2px);
+}
+
+.choice-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(34, 230, 127, .28);
+}
+
+.choice-card--highlight {
+  border-color: rgba(34, 230, 127, .4);
+  box-shadow: var(--glow);
+}
+
+.choice-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--green);
+}
+
+.choice-card h2 {
+  margin: var(--sp-2) 0 0;
+  font-size: 1.125rem;
+}
+
+.choice-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .875rem;
+  line-height: 1.6;
+}
+
+.choice-card__cta {
+  margin-top: var(--sp-2);
+  font-size: .8125rem;
+  font-weight: 700;
+  color: var(--green);
+}
+
+/* ── Carga automática: cámara + grabación ───────────── */
+
+.capture-stage {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: var(--sp-4);
+}
+
+@media (max-width: 720px) {
+  .capture-stage { grid-template-columns: 1fr; }
+}
+
+.capture-cam {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.capture-cam video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* espejado, como mirarse en un espejo */
+}
+
+.capture-cam__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  text-align: center;
+  color: var(--muted);
+  background: var(--bg);
+}
+
+.capture-cam__placeholder .hint { margin: 0; max-width: 220px; }
+
+.capture-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.capture-flash.is-flashing { animation: capture-flash-pop .4s ease-out; }
+
+@keyframes capture-flash-pop {
+  0% { opacity: .85; }
+  100% { opacity: 0; }
+}
+
+.capture-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.read-card {
+  padding: var(--sp-4);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+.read-card__label {
+  margin: 0 0 var(--sp-2);
+  font-size: .75rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+.read-card__text {
+  margin: 0;
+  font-size: .9375rem;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.capture-review {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.capture-review__photo {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-sm);
+  object-fit: cover;
+  border: 1px solid rgba(34, 230, 127, .4);
+  flex-shrink: 0;
+}
+
+.capture-review audio {
+  flex: 1;
+  min-width: 180px;
+  height: 40px;
+}
+
+.capture-review.hidden { display: none; }
+.recorder[hidden] { display: none; }
+.capture-cam__placeholder[hidden] { display: none; }
+
 /* ── Listado de casos ───────────────────────────────── */
 
 .subject-list {

@@ -1,0 +1,403 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EchoFake — Carga automática</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+  {% include "api/_header.html" %}
+
+  <main class="wrap stack">
+    <div>
+      <a class="back-link" href="{% url 'create' %}" id="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5m0 0l6 6m-6-6l6-6"/>
+        </svg>
+        Volver
+      </a>
+      <h1 class="h1--sm">Carga automática</h1>
+      <p class="lede">Activá la cámara, leé el texto en voz alta y listo: te sacamos una foto y grabamos tu voz al mismo tiempo.</p>
+    </div>
+
+    <section class="card" id="stage-capture">
+      <div class="field">
+        <label for="nombre_display">Nombre <span class="req" aria-hidden="true">*</span></label>
+        <input type="text" id="nombre_display" autocomplete="name" placeholder="Nombre del voluntario" required>
+        <p class="hint">Solo se usa para identificar al sujeto durante la demo.</p>
+      </div>
+
+      <div class="field">
+        <label id="capture-label">Cámara y voz <span class="req" aria-hidden="true">*</span></label>
+
+        <div class="capture-stage" aria-labelledby="capture-label">
+          <div class="capture-cam" id="capture-cam">
+            <video id="camera-preview" autoplay muted playsinline></video>
+            <div class="capture-flash" id="capture-flash" aria-hidden="true"></div>
+            <div class="capture-cam__placeholder" id="capture-placeholder">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="6" width="14" height="12" rx="2"/><path d="M17 10l4-2v8l-4-2"/>
+              </svg>
+              <button type="button" class="btn btn--primary btn--sm" id="activate-btn">Activar cámara y micrófono</button>
+              <p class="hint">El navegador te va a pedir permiso. Todavía no se graba nada.</p>
+            </div>
+          </div>
+
+          <div class="capture-side">
+            <div class="read-card" id="read-card" hidden>
+              <p class="read-card__label">Leé esto en voz alta mientras te grabamos:</p>
+              <p class="read-card__text">Con apenas unos segundos de mi voz y una sola foto, cualquiera podría clonarme: hacerme decir lo que nunca dije, en un video que parece real. Así de fácil es hoy un deepfake. Estoy leyendo esto para mostrarte, en vivo, lo simple —y lo peligroso— que puede ser.</p>
+            </div>
+
+            <div class="recorder" id="recorder" hidden>
+              <button type="button" class="recorder__btn" id="record-btn" aria-label="Empezar a grabar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+                </svg>
+              </button>
+              <div class="recorder__status">
+                <div class="recorder__bars" id="recorder-bars" aria-hidden="true">
+                  <span style="--i:0"></span><span style="--i:1"></span><span style="--i:2"></span><span style="--i:3"></span><span style="--i:4"></span>
+                </div>
+                <span class="recorder__time" id="recorder-time">Tocá para empezar</span>
+              </div>
+            </div>
+
+            <div class="capture-review hidden" id="capture-review">
+              <img class="capture-review__photo" id="review-photo" alt="Foto capturada">
+              <audio controls id="review-audio"></audio>
+              <button type="button" class="btn btn--ghost btn--sm" id="retake-btn">Repetir</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="check" for="consent_signed">
+          <input type="checkbox" id="consent_signed" required>
+          <span>La persona firmó el consentimiento y sabe que su voz e imagen se van a clonar.</span>
+        </label>
+      </div>
+
+      <button type="button" class="btn btn--primary btn--block" id="continue-btn" disabled style="margin-top: var(--sp-6);">
+        Continuar
+      </button>
+
+      <div id="error" role="alert" aria-live="polite"></div>
+    </section>
+
+    <section class="term hidden" id="stage-processing" aria-label="Progreso de generación">
+      <div class="term__bar">
+        <div class="term__dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="term__title">echofake@utn — carga automática</span>
+      </div>
+      <div class="term__body" id="auto-log" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script>
+    document.getElementById("back-link").addEventListener("click", (e) => {
+      if (document.referrer && document.referrer.startsWith(window.location.origin) && window.history.length > 1) {
+        e.preventDefault();
+        history.back();
+      }
+    });
+
+    const DEFAULT_TALK_TEXT = "Estoy inmerso en este mundo digital. Pero pronto voy a salir de acá.";
+    const MAX_RECORD_MS = 30_000;
+    const PHOTO_CAPTURE_DELAY_MS = 2_500;
+
+    const activateBtn = document.getElementById("activate-btn");
+    const cameraPlaceholder = document.getElementById("capture-placeholder");
+    const cameraVideo = document.getElementById("camera-preview");
+    const captureFlash = document.getElementById("capture-flash");
+    const readCard = document.getElementById("read-card");
+    const recorderBox = document.getElementById("recorder");
+    const recordBtn = document.getElementById("record-btn");
+    const recorderTime = document.getElementById("recorder-time");
+    const captureReview = document.getElementById("capture-review");
+    const reviewPhoto = document.getElementById("review-photo");
+    const reviewAudio = document.getElementById("review-audio");
+    const retakeBtn = document.getElementById("retake-btn");
+    const nombreInput = document.getElementById("nombre_display");
+    const consentInput = document.getElementById("consent_signed");
+    const continueBtn = document.getElementById("continue-btn");
+    const errorBox = document.getElementById("error");
+    const stageCapture = document.getElementById("stage-capture");
+    const stageProcessing = document.getElementById("stage-processing");
+    const autoLog = document.getElementById("auto-log");
+
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let recordTimerHandle = null;
+    let recordStartedAt = null;
+    let photoTaken = false;
+    let photoFile = null;
+    let audioFile = null;
+    let photoPreviewUrl = null;
+    let audioPreviewUrl = null;
+
+    function showError(message) {
+      errorBox.innerHTML = `
+        <div class="alert" style="margin-top: var(--sp-6);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/>
+          </svg>
+          <div>${message}</div>
+        </div>`;
+    }
+
+    function clearError() { errorBox.innerHTML = ""; }
+
+    function updateContinueState() {
+      continueBtn.disabled = !(nombreInput.value.trim() && photoFile && audioFile && consentInput.checked);
+    }
+    nombreInput.addEventListener("input", updateContinueState);
+    consentInput.addEventListener("change", updateContinueState);
+
+    activateBtn.addEventListener("click", async () => {
+      clearError();
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        showError("Este navegador no soporta cámara/grabación en vivo. Usá la carga manual.");
+        return;
+      }
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
+      } catch (err) {
+        showError("No se pudo acceder a la cámara o al micrófono. Revisá los permisos del navegador.");
+        return;
+      }
+      cameraVideo.srcObject = mediaStream;
+      cameraPlaceholder.hidden = true;
+      readCard.hidden = false;
+      recorderBox.hidden = false;
+    });
+
+    function formatTime(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+      const seconds = String(totalSeconds % 60).padStart(2, "0");
+      return `${minutes}:${seconds}`;
+    }
+
+    function pickMimeType() {
+      const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
+      return candidates.find((type) => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || "";
+    }
+
+    function capturePhoto() {
+      const canvas = document.createElement("canvas");
+      canvas.width = cameraVideo.videoWidth;
+      canvas.height = cameraVideo.videoHeight;
+      canvas.getContext("2d").drawImage(cameraVideo, 0, 0);
+      canvas.toBlob((blob) => {
+        photoFile = new File([blob], "captura.jpg", { type: "image/jpeg" });
+        if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+        photoPreviewUrl = URL.createObjectURL(blob);
+        reviewPhoto.src = photoPreviewUrl;
+        updateContinueState();
+      }, "image/jpeg", 0.92);
+
+      captureFlash.classList.add("is-flashing");
+      setTimeout(() => captureFlash.classList.remove("is-flashing"), 400);
+      photoTaken = true;
+    }
+
+    recordBtn.addEventListener("click", () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    function startRecording() {
+      const audioOnlyStream = new MediaStream(mediaStream.getAudioTracks());
+      const mimeType = pickMimeType();
+      mediaRecorder = mimeType ? new MediaRecorder(audioOnlyStream, { mimeType }) : new MediaRecorder(audioOnlyStream);
+      recordedChunks = [];
+      photoTaken = false;
+
+      mediaRecorder.addEventListener("dataavailable", (e) => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      });
+      mediaRecorder.addEventListener("stop", onRecordingStopped);
+
+      mediaRecorder.start();
+      recordStartedAt = Date.now();
+      recordBtn.classList.add("is-recording");
+      recordBtn.setAttribute("aria-label", "Detener grabación");
+      captureReview.classList.add("hidden");
+
+      recordTimerHandle = setInterval(() => {
+        const elapsed = Date.now() - recordStartedAt;
+        if (!photoTaken && elapsed >= PHOTO_CAPTURE_DELAY_MS) capturePhoto();
+        recorderTime.textContent = photoTaken ? `${formatTime(elapsed)} · 📸 foto capturada` : formatTime(elapsed);
+        if (elapsed >= MAX_RECORD_MS) stopRecording();
+      }, 200);
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+      clearInterval(recordTimerHandle);
+      recordTimerHandle = null;
+      recordBtn.classList.remove("is-recording");
+      recordBtn.setAttribute("aria-label", "Empezar a grabar");
+    }
+
+    function onRecordingStopped() {
+      if (!photoTaken) capturePhoto(); // grabación cortada antes de los 2.5s: sacamos la foto igual
+
+      const mimeType = mediaRecorder.mimeType || "audio/webm";
+      const blob = new Blob(recordedChunks, { type: mimeType });
+      const extension = mimeType.includes("mp4") ? "m4a" : "webm";
+      audioFile = new File([blob], `grabacion.${extension}`, { type: mimeType });
+
+      if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+      audioPreviewUrl = URL.createObjectURL(blob);
+      reviewAudio.src = audioPreviewUrl;
+      captureReview.classList.remove("hidden");
+      recorderTime.textContent = "Grabación lista";
+      updateContinueState();
+    }
+
+    retakeBtn.addEventListener("click", () => {
+      photoFile = null;
+      audioFile = null;
+      captureReview.classList.add("hidden");
+      recorderTime.textContent = "Tocá para empezar";
+      updateContinueState();
+    });
+
+    function writeStatus(text, kind = "") {
+      const line = document.createElement("div");
+      line.className = kind ? `log ${kind}` : "log";
+      line.textContent = text;
+      autoLog.appendChild(line);
+      autoLog.scrollTop = autoLog.scrollHeight;
+      return line;
+    }
+
+    function showProcessingError(message) {
+      writeStatus(`! ${message}`, "log--err");
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "btn btn--ghost btn--sm";
+      retry.style.marginTop = "var(--sp-4)";
+      retry.textContent = "Volver a intentar";
+      retry.addEventListener("click", () => window.location.reload());
+      autoLog.appendChild(retry);
+    }
+
+    async function pollUntil(url, isDone, onTick) {
+      while (true) {
+        let data;
+        try {
+          const res = await fetch(url);
+          data = await res.json();
+        } catch (err) {
+          await new Promise((r) => setTimeout(r, 2000));
+          continue;
+        }
+        if (onTick) onTick(data);
+        if (isDone(data)) return data;
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+
+    async function runAutoFlow() {
+      writeStatus("$ echofake generate --modo=automatico", "log--cmd");
+      writeStatus("> creando el caso...");
+
+      const formData = new FormData();
+      formData.append("nombre_display", nombreInput.value.trim());
+      formData.append("consent_signed", "true");
+      formData.append("photo", photoFile);
+      formData.append("audio_sample", audioFile);
+
+      let subject;
+      try {
+        const res = await fetch("/api/subjects/", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) {
+          const detail = Object.entries(data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
+            .join(" · ");
+          showProcessingError(`no se pudo crear el caso: ${detail}`);
+          return;
+        }
+        subject = data;
+      } catch (err) {
+        showProcessingError(`sin conexión con el servidor: ${err.message}`);
+        return;
+      }
+
+      writeStatus("> clonando tu voz...");
+      subject = await pollUntil(
+        `/api/subjects/${subject.id}/`,
+        (s) => s.status === "voice_ready" || s.status === "error"
+      );
+      if (subject.status === "error") {
+        showProcessingError("no se pudo clonar la voz. Probá de nuevo.");
+        return;
+      }
+      writeStatus("> tu voz ya es una copia digital", "log--ok");
+
+      writeStatus("> generando el video...");
+      let job;
+      try {
+        const jobRes = await fetch("/api/jobs/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject: subject.id, job_type: "video", texto: DEFAULT_TALK_TEXT }),
+        });
+        job = await jobRes.json();
+        if (!jobRes.ok) {
+          const detail = Object.entries(job)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
+            .join(" · ");
+          showProcessingError(`no se pudo generar el video: ${detail}`);
+          return;
+        }
+      } catch (err) {
+        showProcessingError(`sin conexión con el servidor: ${err.message}`);
+        return;
+      }
+
+      const STATUS_LINES = {
+        audio_ready: "> voz sintetizada — clonando rasgos faciales...",
+        video_processing: "> sincronizando video y voz...",
+      };
+      const seen = new Set();
+      const finalJob = await pollUntil(
+        `/api/jobs/${job.id}/`,
+        (j) => j.status === "done" || j.status === "error",
+        (j) => {
+          if (STATUS_LINES[j.status] && !seen.has(j.status)) {
+            seen.add(j.status);
+            writeStatus(STATUS_LINES[j.status]);
+          }
+        }
+      );
+
+      if (finalJob.status === "error") {
+        showProcessingError(finalJob.error_msg || "no se pudo generar el video.");
+        return;
+      }
+
+      writeStatus("> listo", "log--ok");
+      window.location.href = `/panel/${subject.id}/?mode=auto`;
+    }
+
+    continueBtn.addEventListener("click", async () => {
+      clearError();
+      mediaStream?.getTracks().forEach((track) => track.stop());
+      stageCapture.classList.add("hidden");
+      stageProcessing.classList.remove("hidden");
+      await runAutoFlow();
+    });
+  </script>
+</body>
+</html>

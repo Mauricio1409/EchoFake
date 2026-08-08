@@ -1,0 +1,346 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EchoFake — Carga manual</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+  {% include "api/_header.html" %}
+
+  <main class="wrap">
+    <div>
+      <a class="back-link" href="{% url 'create' %}" id="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5m0 0l6 6m-6-6l6-6"/>
+        </svg>
+        Volver
+      </a>
+      <h1 class="h1--sm">Carga manual</h1>
+      <p class="lede">Cargá una foto y una muestra de voz. Con eso alcanza para clonar la voz y, después, generar el video.</p>
+    </div>
+
+    <section class="card" style="margin-top: var(--sp-8);">
+      <form id="subject-form" novalidate>
+        <div class="field">
+          <label for="nombre_display">Nombre <span class="req" aria-hidden="true">*</span></label>
+          <input type="text" id="nombre_display" name="nombre_display" autocomplete="name" placeholder="Nombre del voluntario" required>
+          <p class="hint">Solo se usa para identificar al sujeto durante la demo.</p>
+        </div>
+
+        <div class="field">
+          <label for="photo">Foto de frente <span class="req" aria-hidden="true">*</span></label>
+          <div class="photo-picker">
+            <div class="photo-preview" id="photo-preview" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-4.5-4.5a2 2 0 0 0-2.8 0L9 16"/>
+              </svg>
+            </div>
+            <div class="photo-picker__control">
+              <input type="file" id="photo" name="photo" accept="image/*" required>
+              <p class="hint">Cara visible, bien iluminada, mirando a cámara. JPG o PNG, hasta 10 MB.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label id="audio-label">Muestra de voz <span class="req" aria-hidden="true">*</span></label>
+
+          <div class="audio-picker">
+            <div class="audio-tabs" role="tablist" aria-labelledby="audio-label">
+              <button type="button" class="audio-tab is-active" id="audio-tab-upload" role="tab" aria-selected="true" aria-controls="audio-panel-upload">
+                Subir archivo
+              </button>
+              <button type="button" class="audio-tab" id="audio-tab-record" role="tab" aria-selected="false" aria-controls="audio-panel-record">
+                Grabar audio
+              </button>
+            </div>
+
+            <div class="audio-panel" id="audio-panel-upload" role="tabpanel" aria-labelledby="audio-tab-upload">
+              <input type="file" id="audio_sample" name="audio_sample" accept="audio/*">
+              <p class="hint">Entre 10 y 30 segundos hablando, sin ruido de fondo. MP3 o WAV, hasta 10 MB.</p>
+            </div>
+
+            <div class="audio-panel" id="audio-panel-record" role="tabpanel" aria-labelledby="audio-tab-record" hidden>
+              <div class="recorder" id="recorder">
+                <button type="button" class="recorder__btn" id="record-btn" aria-label="Empezar a grabar audio">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+                  </svg>
+                </button>
+                <div class="recorder__status">
+                  <div class="recorder__bars" id="recorder-bars" aria-hidden="true">
+                    <span style="--i:0"></span><span style="--i:1"></span><span style="--i:2"></span><span style="--i:3"></span><span style="--i:4"></span>
+                  </div>
+                  <span class="recorder__time" id="recorder-time">Tocá el micrófono para grabar</span>
+                </div>
+              </div>
+
+              <div class="recorder__preview hidden" id="recorder-preview">
+                <audio controls id="recorder-audio"></audio>
+                <button type="button" class="btn btn--ghost btn--sm" id="record-again-btn">Volver a grabar</button>
+              </div>
+
+              <p class="hint" id="recorder-hint">Entre 10 y 30 segundos hablando, sin ruido de fondo. Se corta sola a los 60s.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="check" for="consent_signed">
+            <input type="checkbox" id="consent_signed" name="consent_signed" required>
+            <span>La persona firmó el consentimiento y sabe que su voz e imagen se van a clonar.</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--block" style="margin-top: var(--sp-6);">
+          Registrar y clonar voz
+        </button>
+      </form>
+
+      <div id="error" role="alert" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script>
+    document.getElementById("back-link").addEventListener("click", (e) => {
+      if (document.referrer && document.referrer.startsWith(window.location.origin) && window.history.length > 1) {
+        e.preventDefault();
+        history.back();
+      }
+    });
+
+    const form = document.getElementById("subject-form");
+    const errorBox = document.getElementById("error");
+    const MAX_SIZE = 10 * 1024 * 1024;
+
+    const photoInput = document.getElementById("photo");
+    const photoPreview = document.getElementById("photo-preview");
+    const photoPlaceholder = photoPreview.innerHTML;
+    let photoPreviewUrl = null;
+
+    photoInput.addEventListener("change", () => {
+      const file = photoInput.files[0];
+      if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl);
+        photoPreviewUrl = null;
+      }
+      if (!file) {
+        photoPreview.innerHTML = photoPlaceholder;
+        photoPreview.classList.remove("has-image");
+        return;
+      }
+      photoPreviewUrl = URL.createObjectURL(file);
+      photoPreview.innerHTML = `<img src="${photoPreviewUrl}" alt="Vista previa de la foto elegida">`;
+      photoPreview.classList.add("has-image");
+    });
+
+    // ── Muestra de voz: archivo o grabación, unificadas en un solo estado ──
+    const audioFileInput = document.getElementById("audio_sample");
+    const audioTabUpload = document.getElementById("audio-tab-upload");
+    const audioTabRecord = document.getElementById("audio-tab-record");
+    const audioPanelUpload = document.getElementById("audio-panel-upload");
+    const audioPanelRecord = document.getElementById("audio-panel-record");
+    const recordBtn = document.getElementById("record-btn");
+    const recorderTime = document.getElementById("recorder-time");
+    const recorderHint = document.getElementById("recorder-hint");
+    const recorderPreview = document.getElementById("recorder-preview");
+    const recorderAudio = document.getElementById("recorder-audio");
+    const recordAgainBtn = document.getElementById("record-again-btn");
+
+    let audioFile = null; // File ganador, venga de <input type=file> o de la grabación
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let recordStream = null;
+    let recordStartedAt = null;
+    let recordTimerHandle = null;
+    let recordedPreviewUrl = null;
+
+    const MAX_RECORD_MS = 60_000;
+
+    function switchAudioTab(target) {
+      const toUpload = target === "upload";
+      audioTabUpload.classList.toggle("is-active", toUpload);
+      audioTabUpload.setAttribute("aria-selected", String(toUpload));
+      audioTabRecord.classList.toggle("is-active", !toUpload);
+      audioTabRecord.setAttribute("aria-selected", String(!toUpload));
+      audioPanelUpload.hidden = !toUpload;
+      audioPanelRecord.hidden = toUpload;
+    }
+
+    audioTabUpload.addEventListener("click", () => switchAudioTab("upload"));
+    audioTabRecord.addEventListener("click", () => switchAudioTab("record"));
+
+    audioFileInput.addEventListener("change", () => {
+      const file = audioFileInput.files[0];
+      if (!file) return;
+      audioFile = file;
+      discardRecording({ keepFileInput: true });
+    });
+
+    function formatTime(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+      const seconds = String(totalSeconds % 60).padStart(2, "0");
+      return `${minutes}:${seconds}`;
+    }
+
+    function pickRecorderMimeType() {
+      const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
+      return candidates.find((type) => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || "";
+    }
+
+    async function startRecording() {
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        recorderHint.textContent = "Este navegador no soporta grabación. Usá 'Subir archivo'.";
+        return;
+      }
+
+      try {
+        recordStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        recorderHint.textContent = "No se pudo acceder al micrófono. Revisá los permisos del navegador.";
+        return;
+      }
+
+      const mimeType = pickRecorderMimeType();
+      mediaRecorder = mimeType ? new MediaRecorder(recordStream, { mimeType }) : new MediaRecorder(recordStream);
+      recordedChunks = [];
+
+      mediaRecorder.addEventListener("dataavailable", (e) => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      });
+      mediaRecorder.addEventListener("stop", onRecordingStopped);
+
+      mediaRecorder.start();
+      recordStartedAt = Date.now();
+      recordBtn.classList.add("is-recording");
+      recordBtn.setAttribute("aria-label", "Detener grabación");
+      recorderPreview.classList.add("hidden");
+
+      recordTimerHandle = setInterval(() => {
+        const elapsed = Date.now() - recordStartedAt;
+        recorderTime.textContent = formatTime(elapsed);
+        if (elapsed >= MAX_RECORD_MS) stopRecording();
+      }, 200);
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+      recordStream?.getTracks().forEach((track) => track.stop());
+      clearInterval(recordTimerHandle);
+      recordTimerHandle = null;
+      recordBtn.classList.remove("is-recording");
+      recordBtn.setAttribute("aria-label", "Empezar a grabar audio");
+    }
+
+    function onRecordingStopped() {
+      const mimeType = mediaRecorder.mimeType || "audio/webm";
+      const blob = new Blob(recordedChunks, { type: mimeType });
+      const extension = mimeType.includes("mp4") ? "m4a" : "webm";
+
+      audioFile = new File([blob], `grabacion.${extension}`, { type: mimeType });
+      audioFileInput.value = "";
+
+      if (recordedPreviewUrl) URL.revokeObjectURL(recordedPreviewUrl);
+      recordedPreviewUrl = URL.createObjectURL(blob);
+      recorderAudio.src = recordedPreviewUrl;
+      recorderPreview.classList.remove("hidden");
+      recorderTime.textContent = "Grabación lista";
+    }
+
+    function discardRecording({ keepFileInput = false } = {}) {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") stopRecording();
+      if (recordedPreviewUrl) {
+        URL.revokeObjectURL(recordedPreviewUrl);
+        recordedPreviewUrl = null;
+      }
+      recorderAudio.removeAttribute("src");
+      recorderPreview.classList.add("hidden");
+      recorderTime.textContent = "Tocá el micrófono para grabar";
+      if (!keepFileInput) audioFileInput.value = "";
+    }
+
+    recordBtn.addEventListener("click", () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    recordAgainBtn.addEventListener("click", () => {
+      discardRecording();
+      audioFile = null;
+    });
+
+    function showError(message) {
+      errorBox.innerHTML = `
+        <div class="alert" style="margin-top: var(--sp-6);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/>
+          </svg>
+          <div>${message}</div>
+        </div>`;
+    }
+
+    function firstProblem() {
+      const nombre = document.getElementById("nombre_display").value.trim();
+      const photo = document.getElementById("photo").files[0];
+      const consent = document.getElementById("consent_signed").checked;
+
+      if (!nombre) return ["Ingresá el nombre del sujeto.", "nombre_display"];
+      if (!photo) return ["Elegí una foto de frente.", "photo"];
+      if (photo.size > MAX_SIZE) return ["La foto supera los 10 MB. Elegí una más liviana.", "photo"];
+      if (!audioFile) return ["Subí un archivo de audio o grabá una muestra de voz.", "audio-tab-upload"];
+      if (audioFile.size > MAX_SIZE) return ["El audio supera los 10 MB. Recortalo a 30 segundos.", "audio-tab-upload"];
+      if (!consent) return ["Confirmá el consentimiento para continuar.", "consent_signed"];
+      return null;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      errorBox.innerHTML = "";
+
+      const problem = firstProblem();
+      if (problem) {
+        showError(problem[0]);
+        document.getElementById(problem[1]).focus();
+        return;
+      }
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Clonando voz...";
+
+      try {
+        const formData = new FormData();
+        formData.append("nombre_display", document.getElementById("nombre_display").value.trim());
+        formData.append("consent_signed", document.getElementById("consent_signed").checked);
+        formData.append("photo", document.getElementById("photo").files[0]);
+        formData.append("audio_sample", audioFile);
+
+        const response = await fetch("/api/subjects/", { method: "POST", body: formData });
+        const data = await response.json();
+
+        if (!response.ok) {
+          const detail = Object.entries(data)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
+            .join("\n");
+          showError(`No se pudo registrar el sujeto.<pre>${detail}</pre>`);
+          return;
+        }
+
+        window.location.href = `/panel/${data.id}/`;
+      } catch (err) {
+        showError(`No se pudo conectar con el servidor. ${err.message}`);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    });
+  </script>
+</body>
+</html>
