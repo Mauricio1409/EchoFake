@@ -1382,6 +1382,163 @@ input:focus-visible {
 .diagram--photo figcaption a { color: var(--muted); }
 .diagram--photo figcaption a:hover { color: var(--green); }
 
+/* De dónde sacan el material (recolección) */
+
+.diagram--sources {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.source-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-2);
+  width: 100%;
+}
+
+.source-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: .8125rem;
+  color: var(--text);
+}
+
+.source-chip svg { flex-shrink: 0; color: var(--cyan); }
+
+.source-arrow {
+  color: var(--muted);
+  animation: source-drop 1.6s ease-in-out infinite;
+}
+
+@keyframes source-drop {
+  0%, 100% { transform: translateY(0); opacity: .6; }
+  50% { transform: translateY(4px); opacity: 1; }
+}
+
+.source-target {
+  padding: var(--sp-3) var(--sp-4);
+  background: rgba(255, 95, 87, .1);
+  border: 1px solid rgba(255, 95, 87, .35);
+  border-radius: var(--r-sm);
+  color: var(--danger);
+  font-size: .8125rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Línea de tiempo de un caso real */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timeline-step {
+  position: relative;
+  display: flex;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-4);
+}
+
+.timeline-step:last-child { padding-bottom: 0; }
+
+.timeline-step::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 26px;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+
+.timeline-step:last-child::before { display: none; }
+
+.timeline-step__dot {
+  flex-shrink: 0;
+  width: 23px;
+  height: 23px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .6875rem;
+  font-weight: 700;
+  color: var(--bg);
+  background: var(--cyan);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.timeline-step__body p {
+  margin: 0;
+  font-size: .875rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.timeline-step__body strong { color: var(--cyan); }
+
+/* Escala del problema (estadísticas) */
+
+.diagram--stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--sp-4);
+  text-align: center;
+}
+
+.stat-block__num {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: -.02em;
+}
+
+.stat-block__label {
+  margin: var(--sp-1) 0 0;
+  font-size: .75rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.stat-block__label a { color: var(--muted); }
+.stat-block__label a:hover { color: var(--green); }
+
+/* Checklist de protección */
+
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.checklist li {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+}
+
+.checklist svg {
+  flex-shrink: 0;
+  margin-top: .15rem;
+  color: var(--green);
+}
+
+.checklist strong { display: block; color: var(--text); }
+.checklist span { color: var(--muted); font-size: .875rem; line-height: 1.6; }
+
 /* Animaciones de los diagramas */
 
 @keyframes step-chase {
@@ -1451,7 +1608,7 @@ input:focus-visible {
 @media (max-width: 640px) {
   .wrap { padding: var(--sp-8) var(--sp-4); }
   .top__inner { padding: var(--sp-4); }
-  .primary-nav { margin-left: 0; width: 100%; gap: var(--sp-4); }
+  .primary-nav { margin-left: 0; width: 100%; gap: var(--sp-4); flex-wrap: wrap; }
   .card { padding: var(--sp-4); }
   .btn-row .btn { flex: 1 1 100%; }
   .cta-row .btn { flex: 1 1 100%; }

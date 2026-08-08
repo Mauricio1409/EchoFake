@@ -40,6 +40,11 @@ class TemplateRenderingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "api/create-auto.html")
 
+    def test_how_attackers_renders(self):
+        response = self.client.get("/como-operan/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "api/how-attackers.html")
+
     def test_panel_has_generate_card_markup_for_auto_mode_toggle(self):
         # mode=auto hiding is client-side JS; this just guards the id it targets exists.
         response = self.client.get("/panel/00000000-0000-0000-0000-000000000000/")

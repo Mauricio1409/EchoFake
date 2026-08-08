@@ -1,0 +1,251 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EchoFake — Así operan los atacantes</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+  {% include "api/_header.html" %}
+
+  <main class="wrap wrap--wide">
+    <div class="article-head">
+      <a class="back-link" href="{% url 'home' %}" id="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5m0 0l6 6m-6-6l6-6"/>
+        </svg>
+        Volver
+      </a>
+      <h1 class="h1--sm">Así operan los atacantes</h1>
+      <p class="lede">
+        <a href="{% url 'how-it-works' %}">Ya viste cómo funciona la tecnología</a> detrás de un
+        deepfake. Esta página es la otra mitad: no la caja negra del modelo, sino el guion humano
+        que un atacante arma alrededor —de dónde saca el material, qué pretexto usa por teléfono y
+        por qué, aunque suene increíble, sigue funcionando en 2026.
+      </p>
+    </div>
+
+    <nav class="toc" aria-label="Contenido de la página">
+      <a href="#material">01 · De dónde sacan el material</a>
+      <a href="#pretexto">02 · El pretexto: la llamada</a>
+      <a href="#psicologia">03 · Por qué funciona</a>
+      <a href="#escala">04 · La escala del problema</a>
+      <a href="#proteccion">05 · Cómo protegerte</a>
+    </nav>
+
+    <section class="card article-section" id="material">
+      <div class="article-section__grid">
+        <div class="article-section__text">
+          <p class="article-section__eyebrow">01 · Recolección</p>
+          <h2>De dónde sacan el material</h2>
+          <p>
+            No hace falta hackear nada. Los atacantes bajan videos y audios que la propia víctima
+            —o su empresa— ya publicó: reels y stories, videollamadas de trabajo grabadas,
+            entrevistas, charlas, incluso el saludo del contestador. Con eso alcanza: cuanto más
+            material encuentran, mejor sale el clon, pero los modelos actuales ya generan una voz
+            convincente con apenas unos segundos de referencia.
+          </p>
+          <p>
+            Es la misma lógica que viviste recién en la demo: una foto y una muestra corta de
+            audio. La diferencia es que vos lo diste con consentimiento y sabiendo para qué —un
+            atacante lo junta de fuentes públicas, sin que la víctima se entere.
+          </p>
+        </div>
+        <div class="article-section__visual">
+          <figure class="diagram diagram--sources">
+            <span class="diagram__caption">Fuentes típicas</span>
+            <div class="source-grid">
+              <div class="source-chip">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3.5"/></svg>
+                Redes sociales
+              </div>
+              <div class="source-chip">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg>
+                Videollamadas
+              </div>
+              <div class="source-chip">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.36 1.96.7 2.9a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.18-1.27a2 2 0 0 1 2.11-.45c.94.34 1.91.57 2.9.7A2 2 0 0 1 22 16.92z"/></svg>
+                Buzón de voz
+              </div>
+              <div class="source-chip">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                Podcasts / charlas
+              </div>
+            </div>
+            <svg class="source-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" aria-label="convergen en"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+            <p class="source-target">unos segundos de audio + una foto ya alcanzan</p>
+            <p class="diagram__caption diagram__caption--under">
+              Fuente: <a href="https://www.mcafee.com/learn/a-guide-to-deepfake-scams-and-ai-voice-spoofing/" target="_blank" rel="noopener">McAfee</a>,
+              <a href="https://www.group-ib.com/blog/voice-deepfake-scams/" target="_blank" rel="noopener">Group-IB</a>
+            </p>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="card article-section" id="pretexto">
+      <div class="article-section__grid">
+        <div class="article-section__text">
+          <p class="article-section__eyebrow">02 · Ingeniería social</p>
+          <h2>El pretexto: la llamada</h2>
+          <p>
+            Con la voz (y a veces la cara) clonadas, el ataque se ejecuta por teléfono o
+            videollamada —lo que se conoce como <em>vishing</em>. El número que aparece en tu
+            pantalla también puede ser falso: con plataformas VoIP cualquiera programa el
+            identificador de llamada que quiera, incluido el de tu banco o el de un familiar.
+            Dos guiones se repiten una y otra vez:
+          </p>
+          <ul class="article-list">
+            <li><strong>El familiar en apuro:</strong> una voz clonada de tu hijo, nieto o pareja
+              dice que tuvo un accidente, lo detuvieron o necesita plata ya, y pide que no le
+              cuentes a nadie más. La <a href="https://consumer.ftc.gov/consumer-alerts/2023/03/scammers-use-ai-enhance-their-family-emergency-schemes" target="_blank" rel="noopener">FTC</a>
+              viene alertando sobre esta variante desde 2023.</li>
+            <li><strong>El ejecutivo que autoriza una transferencia:</strong> apunta a empleados
+              de finanzas, con la voz —o la cara, en videollamada— de un jefe real.</li>
+          </ul>
+          <p>
+            El caso más citado del segundo tipo es el de <strong>Arup</strong>, la ingeniería
+            londinense: en enero de 2024, un empleado en Hong Kong recibió un mail que decía ser
+            del CFO pidiendo transferencias confidenciales. Dudó, hasta que lo invitaron a una
+            videollamada donde el CFO y varios colegas —todos deepfakes armados con material de
+            reuniones anteriores— le confirmaron el pedido en vivo.
+          </p>
+        </div>
+        <div class="article-section__visual">
+          <div class="diagram">
+            <span class="diagram__caption">Caso Arup · enero 2024</span>
+            <ol class="timeline">
+              <li class="timeline-step">
+                <span class="timeline-step__dot">1</span>
+                <div class="timeline-step__body"><p>Mail de <strong>spear-phishing</strong> haciéndose pasar por el CFO</p></div>
+              </li>
+              <li class="timeline-step">
+                <span class="timeline-step__dot">2</span>
+                <div class="timeline-step__body"><p>Videollamada con <strong>deepfakes</strong> del CFO y colegas reales</p></div>
+              </li>
+              <li class="timeline-step">
+                <span class="timeline-step__dot">3</span>
+                <div class="timeline-step__body"><p>El empleado <strong>autoriza</strong> las transferencias en vivo</p></div>
+              </li>
+              <li class="timeline-step">
+                <span class="timeline-step__dot">4</span>
+                <div class="timeline-step__body"><p><strong>15 transferencias</strong>, 25,6 millones de dólares, en un solo día</p></div>
+              </li>
+            </ol>
+            <p class="diagram__caption diagram__caption--under">
+              Fuente: <a href="https://www.cnn.com/2024/05/16/tech/arup-deepfake-scam-loss-hong-kong-intl-hnk" target="_blank" rel="noopener">CNN</a>,
+              <a href="https://www.weforum.org/stories/2025/02/deepfake-ai-cybercrime-arup/" target="_blank" rel="noopener">World Economic Forum</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card article-section article-section--highlight" id="psicologia">
+      <p class="article-section__eyebrow">03 · Por qué funciona</p>
+      <h2>La voz clonada abre la puerta; la presión hace el resto</h2>
+      <p>
+        El deepfake por sí solo no roba nada. Lo que convierte la imitación en dinero transferido
+        es la misma receta de siempre, ahora con una voz o una cara reales encima:
+      </p>
+      <ul class="article-list">
+        <li><strong>Urgencia:</strong> "es ahora o nunca" no deja tiempo para pensar ni para
+          verificar por otro lado.</li>
+        <li><strong>Autoridad:</strong> la orden viene de alguien a quien ya le decís que sí —tu
+          jefe, un familiar, el banco.</li>
+        <li><strong>Aislamiento:</strong> "no le cuentes a nadie", "es confidencial" corta la
+          posibilidad de que otra persona detecte lo raro.</li>
+        <li><strong>Plausibilidad:</strong> hasta hace poco, escuchar la voz —o ver la cara— de
+          alguien era prueba suficiente de que era esa persona. Ya no.</li>
+      </ul>
+      <p>
+        Vos ya viste en esta misma demo lo poco que hace falta para clonar una voz. El atacante no
+        suma tecnología nueva: le agrega presión y secreto a algo que, técnicamente, ya es
+        trivial.
+      </p>
+    </section>
+
+    <section class="card article-section" id="escala">
+      <div class="article-section__grid">
+        <div class="article-section__text">
+          <p class="article-section__eyebrow">04 · Números</p>
+          <h2>La escala del problema</h2>
+          <p>
+            No es un riesgo teórico. El FBI empezó a trackear fraude asistido por IA como
+            categoría propia en su reporte anual recién en 2025 —y ya es una de las de mayor
+            crecimiento. En verificación de identidad biométrica, uno de cada cinco intentos de
+            fraude ya usa un deepfake.
+          </p>
+        </div>
+        <div class="article-section__visual">
+          <div class="diagram diagram--stats">
+            <div class="stat-block">
+              <p class="stat-block__num">$893M</p>
+              <p class="stat-block__label">perdidos en EE.UU. en fraude con IA durante 2025, según el
+                <a href="https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf" target="_blank" rel="noopener">FBI IC3</a></p>
+            </div>
+            <div class="stat-block">
+              <p class="stat-block__num">1 de 5</p>
+              <p class="stat-block__label">intentos de fraude biométrico ya es un deepfake, según
+                <a href="https://www.entrust.com/company/newsroom/deepfakes-social-engineering-and-injection-attacks-on-the-rise" target="_blank" rel="noopener">Entrust</a></p>
+            </div>
+            <div class="stat-block">
+              <p class="stat-block__num">+58%</p>
+              <p class="stat-block__label">de selfies deepfake en verificaciones de identidad durante
+                2025 (Entrust)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card article-section" id="proteccion">
+      <p class="article-section__eyebrow">05 · Defensa</p>
+      <h2>Cómo detectarlo y protegerte</h2>
+      <p>
+        Nada de esto requiere software especial. Son hábitos, y funcionan porque atacan el punto
+        más débil del truco: la velocidad.
+      </p>
+      <ul class="checklist">
+        <li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+          <div><strong>Acordá una palabra clave con tu familia o tu equipo.</strong>
+            <span>Algo que no esté en ningún posteo ni chat grupal. Si quien llama no la sabe, ya está.</span></div>
+        </li>
+        <li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+          <div><strong>Cortá y volvé a llamar por un canal que ya conocés.</strong>
+            <span>Al número guardado en tus contactos, no al que te llamó a vos. Esto solo desarma la
+              suplantación de identificador y la presión del momento.</span></div>
+        </li>
+        <li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+          <div><strong>Desconfiá de la urgencia, aunque la voz sea perfecta.</strong>
+            <span>Un pedido de plata o datos que no puede esperar ni cinco minutos es, en sí mismo, la
+              señal de alerta más confiable que existe.</span></div>
+        </li>
+        <li>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+          <div><strong>En una empresa, separá quién pide y quién aprueba.</strong>
+            <span>Una segunda autorización por un canal distinto —como debería haber existido en el
+              caso de Arup— frena esto incluso si la voz o el video engañan a la primera persona.</span></div>
+        </li>
+      </ul>
+      <div class="cta-row">
+        <a class="btn btn--primary" href="{% url 'create' %}">Probar la demo</a>
+        <a class="btn btn--ghost" href="{% url 'how-it-works' %}">Ver cómo funciona la tecnología</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.getElementById("back-link").addEventListener("click", (e) => {
+      if (document.referrer && document.referrer.startsWith(window.location.origin) && window.history.length > 1) {
+        e.preventDefault();
+        history.back();
+      }
+    });
+  </script>
+</body>
+</html>

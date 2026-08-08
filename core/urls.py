@@ -13,6 +13,7 @@ urlpatterns = [
     path('nuevo/automatico/', TemplateView.as_view(template_name='api/create-auto.html', extra_context={'active': 'create'}), name='create-auto'),
     path('sujetos/', TemplateView.as_view(template_name='api/list.html', extra_context={'active': 'list'}), name='subject-list'),
     path('como-funciona/', TemplateView.as_view(template_name='api/how-it-works.html', extra_context={'active': 'how'}), name='how-it-works'),
+    path('como-operan/', TemplateView.as_view(template_name='api/how-attackers.html', extra_context={'active': 'attackers'}), name='how-attackers'),
     path('panel/<uuid:subject_id>/', TemplateView.as_view(template_name='api/panel.html'), name='panel'),
 ]
 
