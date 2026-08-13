@@ -4,9 +4,12 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import TemplateView
 
+from apps.api.page_views import LoginPageView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('apps.api.urls')),
+    path('login/', LoginPageView.as_view(), name='login-page'),
     path('', TemplateView.as_view(template_name='api/home.html', extra_context={'active': 'home'}), name='home'),
     path('nuevo/', TemplateView.as_view(template_name='api/create-choice.html', extra_context={'active': 'create'}), name='create'),
     path('nuevo/manual/', TemplateView.as_view(template_name='api/create-manual.html', extra_context={'active': 'create'}), name='create-manual'),

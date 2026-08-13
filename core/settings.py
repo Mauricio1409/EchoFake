@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 import environ
 
@@ -20,6 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'apps.api'
 ]
 
@@ -29,6 +31,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.api.middleware.JWTPageAuthMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -49,6 +52,31 @@ TEMPLATES = [
         },
     },
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'apps.api.authentication.CookieJWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=env.int('JWT_ACCESS_MINUTES', default=30)),
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=env.int('JWT_REFRESH_HOURS', default=12)),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+}
+
+# Cookies que llevan el JWT: httpOnly (no legibles por JS) para que tanto las
+# páginas Django (vía JWTPageAuthMiddleware) como la API (vía CookieJWTAuthentication)
+# se autentiquen con el mismo par access/refresh, sin tocar cada fetch() del sitio.
+JWT_ACCESS_COOKIE = 'echofake_access'
+JWT_REFRESH_COOKIE = 'echofake_refresh'
+JWT_COOKIE_SECURE = not DEBUG
+JWT_COOKIE_SAMESITE = 'Strict'
 
 WSGI_APPLICATION = 'core.wsgi.application'
 

@@ -100,6 +100,13 @@ body {
   transition: color .18s ease;
 }
 
+.primary-nav__link--btn {
+  background: none;
+  border: none;
+  font-family: var(--mono);
+  cursor: pointer;
+}
+
 .primary-nav__link::after {
   content: "";
   position: absolute;
@@ -371,6 +378,7 @@ label {
 .req { color: var(--green); }
 
 input[type="text"],
+input[type="password"],
 input[type="file"],
 textarea {
   width: 100%;
@@ -388,6 +396,7 @@ textarea {
 textarea { resize: vertical; line-height: 1.6; }
 
 input[type="text"]:focus,
+input[type="password"]:focus,
 input[type="file"]:focus,
 textarea:focus {
   outline: none;
@@ -1603,6 +1612,61 @@ input:focus-visible {
   font-size: .8125rem;
   color: var(--muted);
   line-height: 1.6;
+}
+
+/* ── Pantalla de login ──────────────────────────────── */
+
+.login-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(34, 230, 127, .08), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(77, 208, 255, .08), transparent 45%),
+    var(--bg);
+}
+
+.login-screen {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-6);
+}
+
+.login-screen__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.login-card { width: 100%; }
+
+.login-card__body {
+  padding: var(--sp-6);
+  min-height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.login-card__prompt {
+  margin: 0 0 var(--sp-4);
+  font-size: .8125rem;
+  color: var(--green);
+}
+
+.login-screen__hint {
+  margin: 0;
+  font-size: .75rem;
+  color: var(--muted);
+  text-align: center;
 }
 
 @media (max-width: 640px) {

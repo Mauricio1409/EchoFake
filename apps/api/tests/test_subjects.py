@@ -1,6 +1,7 @@
 import tempfile
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from rest_framework import status
@@ -27,6 +28,10 @@ def make_audio():
 
 @override_settings(MEDIA_ROOT=MEDIA_TMP, CELERY_TASK_ALWAYS_EAGER=True)
 class SubjectViewSetTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="operador", password="pass12345")
+        self.client.force_authenticate(user=self.user)
+
     @patch("apps.api.services.subject_service.ElevenLabsClient")
     def test_create_subject_success(self, mock_client_cls):
         mock_client_cls.return_value.add_voice.return_value = "voice-123"
@@ -108,3 +113,26 @@ class SubjectViewSetTests(APITestCase):
         response = self.client.delete("/api/subjects/00000000-0000-0000-0000-000000000000/purge/")
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+@override_settings(MEDIA_ROOT=MEDIA_TMP)
+class SubjectViewSetUnauthenticatedTests(APITestCase):
+    def test_list_subjects_without_credentials_returns_401(self):
+        response = self.client.get("/api/subjects/")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_create_subject_without_credentials_returns_401(self):
+        response = self.client.post(
+            "/api/subjects/",
+            data={
+                "nombre_display": "Ana",
+                "consent_signed": True,
+                "photo": make_photo(),
+                "audio_sample": make_audio(),
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(Subject.objects.count(), 0)

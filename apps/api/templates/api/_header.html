@@ -12,6 +12,22 @@
       <a class="primary-nav__link{% if active == 'list' %} is-active{% endif %}" href="{% url 'subject-list' %}">Casos</a>
       <a class="primary-nav__link{% if active == 'how' %} is-active{% endif %}" href="{% url 'how-it-works' %}">Cómo funciona</a>
       <a class="primary-nav__link{% if active == 'attackers' %} is-active{% endif %}" href="{% url 'how-attackers' %}">Cómo atacan</a>
+      {% if user.is_authenticated %}
+        <button type="button" class="primary-nav__link primary-nav__link--btn" id="logout-btn">Salir</button>
+      {% else %}
+        <a class="primary-nav__link" href="{% url 'login-page' %}">Ingresar</a>
+      {% endif %}
     </nav>
   </div>
 </header>
+{% if user.is_authenticated %}
+<script>
+  document.getElementById("logout-btn").addEventListener("click", async () => {
+    try {
+      await fetch("/api/auth/logout/", { method: "POST" });
+    } finally {
+      window.location.href = "{% url 'login-page' %}";
+    }
+  });
+</script>
+{% endif %}

@@ -3,6 +3,11 @@ from rest_framework import serializers
 from apps.api.models import Job, Subject
 
 
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(trim_whitespace=False)
+
+
 class SubjectCreateSerializer(serializers.ModelSerializer):
     photo = serializers.ImageField(required=True)
     audio_sample = serializers.FileField(required=True)

@@ -1,0 +1,54 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EchoFake — Ingresar</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body class="login-body">
+  <main class="login-screen">
+    <a class="login-screen__brand" href="{% url 'home' %}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M3 12h2m3-6v12m4-16v20m4-14v8m4-5v2"/>
+      </svg>
+      <span>Echo<b>Fake</b></span>
+    </a>
+
+    <section class="term login-card" aria-label="Iniciar sesión">
+      <div class="term__bar">
+        <div class="term__dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="term__title">echofake@utn — acceso</span>
+      </div>
+      <div class="term__body login-card__body">
+        <p class="login-card__prompt">$ echofake login</p>
+
+        {% if error %}
+        <div class="alert" role="alert" style="margin-bottom: var(--sp-4);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/>
+          </svg>
+          <div>{{ error }}</div>
+        </div>
+        {% endif %}
+
+        <form method="post" class="stack" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next }}">
+          <div class="field">
+            <label for="username">Usuario</label>
+            <input type="text" id="username" name="username" autocomplete="username" value="{{ username|default:'' }}" required autofocus>
+          </div>
+          <div class="field">
+            <label for="password">Contraseña</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" required>
+          </div>
+          <button type="submit" class="btn btn--primary btn--block" style="margin-top: var(--sp-2);">Ingresar</button>
+        </form>
+      </div>
+    </section>
+
+    <p class="login-screen__hint">Acceso restringido al equipo de EchoFake.</p>
+  </main>
+</body>
+</html>

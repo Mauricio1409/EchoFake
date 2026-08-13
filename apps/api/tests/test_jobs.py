@@ -1,6 +1,7 @@
 import tempfile
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from rest_framework import status
@@ -27,6 +28,10 @@ def make_audio():
 
 @override_settings(MEDIA_ROOT=MEDIA_TMP, CELERY_TASK_ALWAYS_EAGER=True)
 class JobViewSetTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="operador", password="pass12345")
+        self.client.force_authenticate(user=self.user)
+
     def _voice_ready_subject(self):
         return Subject.objects.create(
             nombre_display="Ana",
@@ -139,3 +144,11 @@ class JobViewSetTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
+
+
+@override_settings(MEDIA_ROOT=MEDIA_TMP)
+class JobViewSetUnauthenticatedTests(APITestCase):
+    def test_list_jobs_without_credentials_returns_401(self):
+        response = self.client.get("/api/jobs/")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
