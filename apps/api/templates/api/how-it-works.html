@@ -357,8 +357,12 @@
         producir algo convincente.
       </p>
       <div class="cta-row">
-        <a class="btn btn--primary" href="{% url 'create' %}">Probar la demo</a>
-        <a class="btn btn--ghost" href="{% url 'subject-list' %}">Ver casos generados</a>
+        {% if user.is_authenticated %}
+          <a class="btn btn--primary" href="{% url 'create' %}">Probar la demo</a>
+          <a class="btn btn--ghost" href="{% url 'subject-list' %}">Ver casos generados</a>
+        {% else %}
+          <a class="btn btn--primary" href="{% url 'login-page' %}">Iniciar sesión</a>
+        {% endif %}
       </div>
     </section>
 

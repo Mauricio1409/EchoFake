@@ -31,6 +31,30 @@ class PublicPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "api/login.html")
 
+    def test_home_nav_hides_protected_links_when_logged_out(self):
+        response = self.client.get("/")
+        self.assertContains(response, 'href="/login/"')
+        self.assertNotContains(response, 'href="/nuevo/"')
+        self.assertNotContains(response, 'href="/sujetos/"')
+
+    def test_home_hides_create_and_list_ctas_when_logged_out(self):
+        response = self.client.get("/")
+        self.assertNotContains(response, "Generar un caso")
+        self.assertNotContains(response, "Ver casos generados")
+        self.assertContains(response, "Iniciar sesión")
+
+    def test_how_it_works_hides_protected_ctas_when_logged_out(self):
+        response = self.client.get("/como-funciona/")
+        self.assertNotContains(response, "Probar la demo")
+        self.assertNotContains(response, "Ver casos generados")
+        self.assertContains(response, "Iniciar sesión")
+
+    def test_how_attackers_hides_protected_cta_when_logged_out(self):
+        response = self.client.get("/como-operan/")
+        self.assertNotContains(response, "Probar la demo")
+        self.assertContains(response, "Ver cómo funciona la tecnología")
+        self.assertContains(response, "Iniciar sesión")
+
 
 class ProtectedPageRedirectsWithoutLoginTests(TestCase):
     """Everything else ('el resto de partes') bounces to /login/ when logged out."""
@@ -114,3 +138,22 @@ class ProtectedPageTests(TestCase):
     def test_header_shows_logout_once_logged_in(self):
         response = self.client.get("/sujetos/")
         self.assertContains(response, 'id="logout-btn"')
+
+    def test_home_nav_shows_protected_links_once_logged_in(self):
+        response = self.client.get("/")
+        self.assertContains(response, 'href="/nuevo/"')
+        self.assertContains(response, 'href="/sujetos/"')
+
+    def test_home_shows_create_and_list_ctas_once_logged_in(self):
+        response = self.client.get("/")
+        self.assertContains(response, "Generar un caso")
+        self.assertContains(response, "Ver casos generados")
+
+    def test_how_it_works_shows_protected_ctas_once_logged_in(self):
+        response = self.client.get("/como-funciona/")
+        self.assertContains(response, "Probar la demo")
+        self.assertContains(response, "Ver casos generados")
+
+    def test_how_attackers_shows_protected_cta_once_logged_in(self):
+        response = self.client.get("/como-operan/")
+        self.assertContains(response, "Probar la demo")

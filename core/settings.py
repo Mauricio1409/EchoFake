@@ -148,4 +148,4 @@ FAL_POLL_INTERVAL = env.float('FAL_POLL_INTERVAL', default=3.0)
 FAL_POLL_TIMEOUT = env.float('FAL_POLL_TIMEOUT', default=300.0)
 FAL_OBJECT_TTL_SECONDS = env.int('FAL_OBJECT_TTL_SECONDS', default=3600)
 FAL_PLATFORM_URL = env('FAL_PLATFORM_URL', default='https://api.fal.ai/v1')
-FAL_ADMIN_KEY = env('FAL_ADMIN_KEY', default='')  # no fallback to FAL_KEY — see full-data-purge design.md decision #4
+FAL_ADMIN_KEY = env('FAL_ADMIN_KEY', default='')

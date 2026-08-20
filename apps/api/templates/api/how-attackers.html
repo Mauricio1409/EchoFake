@@ -233,7 +233,11 @@
         </li>
       </ul>
       <div class="cta-row">
-        <a class="btn btn--primary" href="{% url 'create' %}">Probar la demo</a>
+        {% if user.is_authenticated %}
+          <a class="btn btn--primary" href="{% url 'create' %}">Probar la demo</a>
+        {% else %}
+          <a class="btn btn--primary" href="{% url 'login-page' %}">Iniciar sesión</a>
+        {% endif %}
         <a class="btn btn--ghost" href="{% url 'how-it-works' %}">Ver cómo funciona la tecnología</a>
       </div>
     </section>

@@ -8,8 +8,10 @@
     </a>
     <nav class="primary-nav" aria-label="Principal">
       <a class="primary-nav__link{% if active == 'home' %} is-active{% endif %}" href="{% url 'home' %}">Inicio</a>
-      <a class="primary-nav__link{% if active == 'create' %} is-active{% endif %}" href="{% url 'create' %}">Generar</a>
-      <a class="primary-nav__link{% if active == 'list' %} is-active{% endif %}" href="{% url 'subject-list' %}">Casos</a>
+      {% if user.is_authenticated %}
+        <a class="primary-nav__link{% if active == 'create' %} is-active{% endif %}" href="{% url 'create' %}">Generar</a>
+        <a class="primary-nav__link{% if active == 'list' %} is-active{% endif %}" href="{% url 'subject-list' %}">Casos</a>
+      {% endif %}
       <a class="primary-nav__link{% if active == 'how' %} is-active{% endif %}" href="{% url 'how-it-works' %}">Cómo funciona</a>
       <a class="primary-nav__link{% if active == 'attackers' %} is-active{% endif %}" href="{% url 'how-attackers' %}">Cómo atacan</a>
       {% if user.is_authenticated %}
