@@ -831,10 +831,13 @@ input:focus-visible {
 }
 
 .capture-cam video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* espejado, como mirarse en un espejo */
+  opacity: 0; /* stream sigue activo para capturar la foto, pero no se muestra */
+  pointer-events: none;
 }
 
 .capture-cam__placeholder {
@@ -853,20 +856,7 @@ input:focus-visible {
 
 .capture-cam__placeholder .hint { margin: 0; max-width: 220px; }
 
-.capture-flash {
-  position: absolute;
-  inset: 0;
-  background: #fff;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.capture-flash.is-flashing { animation: capture-flash-pop .4s ease-out; }
-
-@keyframes capture-flash-pop {
-  0% { opacity: .85; }
-  100% { opacity: 0; }
-}
+.capture-cam__placeholder .btn[hidden] { display: none; }
 
 .capture-side {
   display: flex;
@@ -920,7 +910,6 @@ input:focus-visible {
 
 .capture-review.hidden { display: none; }
 .recorder[hidden] { display: none; }
-.capture-cam__placeholder[hidden] { display: none; }
 
 /* ── Listado de casos ───────────────────────────────── */
 

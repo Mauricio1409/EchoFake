@@ -33,14 +33,13 @@
 
         <div class="capture-stage" aria-labelledby="capture-label">
           <div class="capture-cam" id="capture-cam">
-            <video id="camera-preview" autoplay muted playsinline></video>
-            <div class="capture-flash" id="capture-flash" aria-hidden="true"></div>
+            <video id="camera-preview" autoplay muted playsinline aria-hidden="true"></video>
             <div class="capture-cam__placeholder" id="capture-placeholder">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="3" y="6" width="14" height="12" rx="2"/><path d="M17 10l4-2v8l-4-2"/>
               </svg>
               <button type="button" class="btn btn--primary btn--sm" id="activate-btn">Activar cámara y micrófono</button>
-              <p class="hint">El navegador te va a pedir permiso. Todavía no se graba nada.</p>
+              <p class="hint" id="capture-status-hint">El navegador te va a pedir permiso. Todavía no se graba nada.</p>
             </div>
           </div>
 
@@ -109,9 +108,8 @@
     const PHOTO_CAPTURE_DELAY_MS = 2_500;
 
     const activateBtn = document.getElementById("activate-btn");
-    const cameraPlaceholder = document.getElementById("capture-placeholder");
+    const cameraStatusHint = document.getElementById("capture-status-hint");
     const cameraVideo = document.getElementById("camera-preview");
-    const captureFlash = document.getElementById("capture-flash");
     const readCard = document.getElementById("read-card");
     const recorderBox = document.getElementById("recorder");
     const recordBtn = document.getElementById("record-btn");
@@ -170,7 +168,8 @@
         return;
       }
       cameraVideo.srcObject = mediaStream;
-      cameraPlaceholder.hidden = true;
+      activateBtn.hidden = true;
+      cameraStatusHint.textContent = "Cámara y micrófono activados. La vista previa no se muestra.";
       readCard.hidden = false;
       recorderBox.hidden = false;
     });
@@ -200,8 +199,6 @@
         updateContinueState();
       }, "image/jpeg", 0.92);
 
-      captureFlash.classList.add("is-flashing");
-      setTimeout(() => captureFlash.classList.remove("is-flashing"), 400);
       photoTaken = true;
     }
 
