@@ -18,7 +18,6 @@
         Volver
       </a>
       <h1 class="h1--sm">Carga automática</h1>
-      <p class="lede">Activá la cámara, leé el texto en voz alta y listo: te sacamos una foto y grabamos tu voz al mismo tiempo.</p>
     </div>
 
     <section class="card" id="stage-capture">
@@ -29,9 +28,9 @@
       </div>
 
       <div class="field">
-        <label id="capture-label">Cámara y voz <span class="req" aria-hidden="true">*</span></label>
+        <label id="capture-label">Grabación de voz <span class="req" aria-hidden="true">*</span></label>
 
-        <div class="capture-stage" aria-labelledby="capture-label">
+        <div class="capture-stage" id="capture-stage-grid" aria-labelledby="capture-label">
           <div class="capture-cam" id="capture-cam">
             <video id="camera-preview" autoplay muted playsinline aria-hidden="true"></video>
             <div class="capture-cam__placeholder" id="capture-placeholder">
@@ -64,7 +63,6 @@
             </div>
 
             <div class="capture-review hidden" id="capture-review">
-              <img class="capture-review__photo" id="review-photo" alt="Foto capturada">
               <audio controls id="review-audio"></audio>
               <button type="button" class="btn btn--ghost btn--sm" id="retake-btn">Repetir</button>
             </div>
@@ -108,14 +106,13 @@
     const PHOTO_CAPTURE_DELAY_MS = 2_500;
 
     const activateBtn = document.getElementById("activate-btn");
-    const cameraStatusHint = document.getElementById("capture-status-hint");
     const cameraVideo = document.getElementById("camera-preview");
     const readCard = document.getElementById("read-card");
     const recorderBox = document.getElementById("recorder");
     const recordBtn = document.getElementById("record-btn");
     const recorderTime = document.getElementById("recorder-time");
     const captureReview = document.getElementById("capture-review");
-    const reviewPhoto = document.getElementById("review-photo");
+    const captureStageGrid = document.getElementById("capture-stage-grid");
     const reviewAudio = document.getElementById("review-audio");
     const retakeBtn = document.getElementById("retake-btn");
     const nombreInput = document.getElementById("nombre_display");
@@ -134,7 +131,6 @@
     let photoTaken = false;
     let photoFile = null;
     let audioFile = null;
-    let photoPreviewUrl = null;
     let audioPreviewUrl = null;
 
     function showError(message) {
@@ -155,24 +151,43 @@
     nombreInput.addEventListener("input", updateContinueState);
     consentInput.addEventListener("change", updateContinueState);
 
-    activateBtn.addEventListener("click", async () => {
+    async function activateCapture() {
       clearError();
       if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
         showError("Este navegador no soporta cámara/grabación en vivo. Usá la carga manual.");
-        return;
+        return false;
       }
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
       } catch (err) {
         showError("No se pudo acceder a la cámara o al micrófono. Revisá los permisos del navegador.");
-        return;
+        return false;
       }
       cameraVideo.srcObject = mediaStream;
-      activateBtn.hidden = true;
-      cameraStatusHint.textContent = "Cámara y micrófono activados. La vista previa no se muestra.";
+      captureStageGrid.classList.add("is-active");
       readCard.hidden = false;
       recorderBox.hidden = false;
-    });
+      return true;
+    }
+
+    activateBtn.addEventListener("click", () => { activateCapture(); });
+
+    // Si el navegador ya otorgó los permisos en una visita anterior, no hace falta
+    // volver a mostrar el botón ni disparar el prompt: se activa solo.
+    (async () => {
+      if (!navigator.permissions?.query) return;
+      try {
+        const [cam, mic] = await Promise.all([
+          navigator.permissions.query({ name: "camera" }),
+          navigator.permissions.query({ name: "microphone" }),
+        ]);
+        if (cam.state === "granted" && mic.state === "granted") {
+          await activateCapture();
+        }
+      } catch (err) {
+        // Permissions API sin soporte para camera/microphone (ej. Firefox): se mantiene el botón manual.
+      }
+    })();
 
     function formatTime(ms) {
       const totalSeconds = Math.floor(ms / 1000);
@@ -193,9 +208,6 @@
       canvas.getContext("2d").drawImage(cameraVideo, 0, 0);
       canvas.toBlob((blob) => {
         photoFile = new File([blob], "captura.jpg", { type: "image/jpeg" });
-        if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-        photoPreviewUrl = URL.createObjectURL(blob);
-        reviewPhoto.src = photoPreviewUrl;
         updateContinueState();
       }, "image/jpeg", 0.92);
 
@@ -231,7 +243,7 @@
       recordTimerHandle = setInterval(() => {
         const elapsed = Date.now() - recordStartedAt;
         if (!photoTaken && elapsed >= PHOTO_CAPTURE_DELAY_MS) capturePhoto();
-        recorderTime.textContent = photoTaken ? `${formatTime(elapsed)} · 📸 foto capturada` : formatTime(elapsed);
+        recorderTime.textContent = formatTime(elapsed);
         if (elapsed >= MAX_RECORD_MS) stopRecording();
       }, 200);
     }

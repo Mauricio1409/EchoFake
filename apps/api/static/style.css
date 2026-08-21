@@ -821,6 +821,14 @@ input:focus-visible {
   .capture-stage { grid-template-columns: 1fr; }
 }
 
+.capture-stage.is-active {
+  grid-template-columns: 1fr;
+}
+
+.capture-stage.is-active .capture-cam {
+  display: none;
+}
+
 .capture-cam {
   position: relative;
   aspect-ratio: 4 / 3;
@@ -891,15 +899,6 @@ input:focus-visible {
   align-items: center;
   gap: var(--sp-3);
   flex-wrap: wrap;
-}
-
-.capture-review__photo {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--r-sm);
-  object-fit: cover;
-  border: 1px solid rgba(34, 230, 127, .4);
-  flex-shrink: 0;
 }
 
 .capture-review audio {
