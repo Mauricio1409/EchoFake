@@ -41,7 +41,17 @@ class ElevenLabsClient:
                 response = client.post(
                     f"/v1/text-to-speech/{voice_id}",
                     headers=self._headers(),
-                    json={"text": text},
+                    json={
+                        "text": text,
+                        "model_id": "eleven_multilingual_v2",
+                        "voice_settings": {
+                            "stability": 0.30,
+                            "similarity_boost": 1.0,
+                            "style": 0.20,
+                            "use_speaker_boost": True,
+                            "speed": 0.84,
+                        },
+                    },
                 )
                 response.raise_for_status()
                 return response.content
